@@ -1,0 +1,25 @@
+{
+  "name": "lettermint",
+  "version": "0.0.1",
+  "description": "Official Lettermint Node.js SDK",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lettermint/lettermint-node.git"
+  },
+  "keywords": [
+    "Lettermint",
+    "Node",
+    "lettermint-node",
+    "mailer"
+  ],
+  "author": "Bjarn Bronsveld",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lettermint/lettermint-node/issues"
+  },
+  "homepage": "https://github.com/lettermint/lettermint-node#readme"
+}
