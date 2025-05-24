@@ -1,10 +1,19 @@
 {
   "name": "lettermint",
-  "version": "0.0.1",
+  "version": "1.2.0",
   "description": "Official Lettermint Node.js SDK",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean --minify --sourcemap",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format .",
+    "format:fix": "biome format --write .",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:watch": "jest --watch",
+    "type-check": "tsc --noEmit"
   },
   "repository": {
     "type": "git",
@@ -13,13 +22,27 @@
   "keywords": [
     "Lettermint",
     "Node",
-    "lettermint-node",
-    "mailer"
+    "lettermint-node"
   ],
   "author": "Bjarn Bronsveld",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/lettermint/lettermint-node/issues"
   },
-  "homepage": "https://github.com/lettermint/lettermint-node#readme"
+  "homepage": "https://github.com/lettermint/lettermint-node#readme",
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^11.0.2",
+    "@semantic-release/npm": "^12.0.1",
+    "@semantic-release/release-notes-generator": "^14.0.3",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.15.21",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.3.4",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3"
+  }
 }

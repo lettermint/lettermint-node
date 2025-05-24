@@ -271,7 +271,4 @@ next-env.d.ts
 .output
 .gen
 
-# Node dependencies
-
-# System files
-
+dist
