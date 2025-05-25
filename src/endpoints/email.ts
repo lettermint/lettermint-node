@@ -247,17 +247,17 @@ export class EmailEndpoint extends Endpoint {
    * Attach a file to the email
    *
    * @param filename The attachment filename
-   * @param base64Content The base64-encoded file content
+   * @param content The base64-encoded file content
    * @returns The current instance for chaining
    */
-  public attach(filename: string, base64Content: string): this {
+  public attach(filename: string, content: string): this {
     if (!this.payload.attachments) {
       this.payload.attachments = [];
     }
 
     this.payload.attachments.push({
       filename,
-      content: base64Content,
+      content,
     });
 
     return this;
