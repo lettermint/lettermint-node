@@ -1,3 +1,15 @@
+# [1.1.0](https://github.com/lettermint/lettermint-node/compare/v1.0.1...v1.1.0) (2025-06-28)
+
+
+### Bug Fixes
+
+* update test cases to handle optional second argument in `send` calls ([013855b](https://github.com/lettermint/lettermint-node/commit/013855b0ced2a41d8cdada8d515c899ee0bc091d))
+
+
+### Features
+
+* add support for idempotency key in email requests ([93370e5](https://github.com/lettermint/lettermint-node/commit/93370e5648d3aff3921e22d2e1e4bae18e84bb81))
+
 ## [1.0.1](https://github.com/lettermint/lettermint-node/compare/v1.0.0...v1.0.1) (2025-05-25)
 
 
