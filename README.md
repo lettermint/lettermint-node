@@ -55,6 +55,7 @@ const response = await lettermint.email
     'X-Custom-Header': 'Custom Value',
   })
   .attach('attachment.txt', Buffer.from('Hello World').toString('base64'))
+  .idempotencyKey('unique-id-123')
   .send();
 ```
 
@@ -87,6 +88,7 @@ Methods for sending emails:
 - `headers(headers: Record<string, string>)`: Set custom headers for the email
 - `attach(filename: string, base64Content: string)`: Attach a file to the email
 - `route(route: string)`: Set the routing key for the email
+- `idempotencyKey(key: string)`: Set an idempotency key to prevent duplicate email sends
 - `send()`: Send the email and return a promise with the response
 
 ## License

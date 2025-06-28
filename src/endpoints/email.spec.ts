@@ -234,6 +234,29 @@ describe('EmailEndpoint', () => {
         },
       ],
       route: 'test-route',
-    });
+    }, undefined);
+  });
+
+  it('should set the idempotency key in the request headers', async () => {
+    // Set up a basic email with an idempotency key
+    emailEndpoint
+      .from('sender@example.com')
+      .to('recipient@example.com')
+      .subject('Test Subject')
+      .idempotencyKey('unique-id-123');
+
+    // Send the email
+    await emailEndpoint.send();
+
+    // Verify the idempotency key is included in the request config
+    expect(client.post).toHaveBeenCalledWith(
+      '/send',
+      expect.any(Object),
+      {
+        headers: {
+          'Idempotency-Key': 'unique-id-123'
+        }
+      }
+    );
   });
 });

@@ -115,6 +115,11 @@ export class EmailEndpoint extends Endpoint {
   };
 
   /**
+   * The idempotency key for the request
+   */
+  private idempotencyKeyValue?: string;
+
+  /**
    * Set custom headers for the email
    *
    * @example headers({ 'X-Custom': 'Value' })
@@ -124,6 +129,22 @@ export class EmailEndpoint extends Endpoint {
    */
   public headers(headers: Record<string, string>): this {
     this.payload.headers = headers;
+    return this;
+  }
+
+  /**
+   * Set the idempotency key for the request
+   * 
+   * This helps prevent duplicate email sends when retrying failed requests.
+   * If you provide the same idempotency key for multiple requests, only the first one will be processed.
+   * 
+   * @example idempotencyKey('unique-id-123')
+   * 
+   * @param key A unique string to identify this request
+   * @returns The current instance for chaining
+   */
+  public idempotencyKey(key: string): this {
+    this.idempotencyKeyValue = key;
     return this;
   }
 
@@ -270,6 +291,10 @@ export class EmailEndpoint extends Endpoint {
    * @throws Error on HTTP or API failure
    */
   public async send(): Promise<SendEmailResponse> {
-    return this.httpClient.post<SendEmailResponse>('/send', this.payload);
+    const config = this.idempotencyKeyValue
+      ? { headers: { 'Idempotency-Key': this.idempotencyKeyValue } }
+      : undefined;
+
+    return this.httpClient.post<SendEmailResponse>('/send', this.payload, config);
   }
 }
