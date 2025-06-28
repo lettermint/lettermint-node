@@ -31,7 +31,8 @@ describe('EmailEndpoint', () => {
         '/send',
         expect.objectContaining({
           from: 'test@example.com',
-        })
+        }),
+        undefined
       );
     });
   });
@@ -46,7 +47,8 @@ describe('EmailEndpoint', () => {
         '/send',
         expect.objectContaining({
           to: ['recipient1@example.com', 'recipient2@example.com'],
-        })
+        }),
+        undefined
       );
     });
   });
@@ -61,7 +63,8 @@ describe('EmailEndpoint', () => {
         '/send',
         expect.objectContaining({
           subject: 'Test Subject',
-        })
+        }),
+        undefined
       );
     });
   });
@@ -76,7 +79,8 @@ describe('EmailEndpoint', () => {
         '/send',
         expect.objectContaining({
           html: '<p>Test HTML</p>',
-        })
+        }),
+        undefined
       );
     });
   });
@@ -91,7 +95,8 @@ describe('EmailEndpoint', () => {
         '/send',
         expect.objectContaining({
           text: 'Test text',
-        })
+        }),
+        undefined
       );
     });
   });
@@ -106,7 +111,8 @@ describe('EmailEndpoint', () => {
         '/send',
         expect.objectContaining({
           cc: ['cc1@example.com', 'cc2@example.com'],
-        })
+        }),
+        undefined
       );
     });
   });
@@ -121,7 +127,8 @@ describe('EmailEndpoint', () => {
         '/send',
         expect.objectContaining({
           bcc: ['bcc1@example.com', 'bcc2@example.com'],
-        })
+        }),
+        undefined
       );
     });
   });
@@ -136,7 +143,8 @@ describe('EmailEndpoint', () => {
         '/send',
         expect.objectContaining({
           reply_to: ['reply1@example.com', 'reply2@example.com'],
-        })
+        }),
+        undefined
       );
     });
   });
@@ -152,7 +160,8 @@ describe('EmailEndpoint', () => {
         '/send',
         expect.objectContaining({
           headers,
-        })
+        }),
+        undefined
       );
     });
   });
@@ -172,7 +181,8 @@ describe('EmailEndpoint', () => {
               content: 'base64content',
             },
           ],
-        })
+        }),
+        undefined
       );
     });
   });
@@ -187,7 +197,8 @@ describe('EmailEndpoint', () => {
         '/send',
         expect.objectContaining({
           route: 'test-route',
-        })
+        }),
+        undefined
       );
     });
   });
