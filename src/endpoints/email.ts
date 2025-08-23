@@ -77,6 +77,11 @@ export interface EmailPayload {
    * The route identifier (optional)
    */
   route?: string;
+
+  /**
+   * The metadata object (optional)
+   */
+  metadata?: Record<string, string>;
 }
 
 /**
@@ -134,12 +139,12 @@ export class EmailEndpoint extends Endpoint {
 
   /**
    * Set the idempotency key for the request
-   * 
+   *
    * This helps prevent duplicate email sends when retrying failed requests.
    * If you provide the same idempotency key for multiple requests, only the first one will be processed.
-   * 
+   *
    * @example idempotencyKey('unique-id-123')
-   * 
+   *
    * @param key A unique string to identify this request
    * @returns The current instance for chaining
    */
@@ -281,6 +286,19 @@ export class EmailEndpoint extends Endpoint {
       content,
     });
 
+    return this;
+  }
+
+  /**
+   * Set metadata for the email
+   *
+   * @example metadata({ 'custom': 'value' })
+   *
+   * @param metadata The metadata object
+   * @returns The current instance for chaining
+   */
+  public metadata(metadata: Record<string, string>): this {
+    this.payload.metadata = metadata;
     return this;
   }
 

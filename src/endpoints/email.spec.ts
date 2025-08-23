@@ -203,6 +203,23 @@ describe('EmailEndpoint', () => {
     });
   });
 
+  it('should set metadata', () => {
+    const metadata = { foo: 'bar', fizz: 'buzz' };
+    const result = emailEndpoint.metadata(metadata);
+
+    expect(result).toBe(emailEndpoint);
+
+    return emailEndpoint.send().then(() => {
+      expect(client.post).toHaveBeenCalledWith(
+        '/send',
+        expect.objectContaining({
+          metadata,
+        }),
+        undefined
+      );
+    });
+  });
+
   it('should send the email with all options', async () => {
     // Set up a complete email
     emailEndpoint
@@ -216,7 +233,10 @@ describe('EmailEndpoint', () => {
       .replyTo('reply@example.com')
       .headers({ 'X-Custom': 'Value' })
       .attach('test.txt', 'base64content')
-      .route('test-route');
+      .route('test-route')
+      .metadata({
+        foo: 'bar',
+      });
 
     // Send the email
     const response = await emailEndpoint.send();
@@ -228,24 +248,31 @@ describe('EmailEndpoint', () => {
     });
 
     // Verify the complete payload
-    expect(client.post).toHaveBeenCalledWith('/send', {
-      from: 'sender@example.com',
-      to: ['recipient@example.com'],
-      subject: 'Test Subject',
-      html: '<p>HTML Content</p>',
-      text: 'Text content',
-      cc: ['cc@example.com'],
-      bcc: ['bcc@example.com'],
-      reply_to: ['reply@example.com'],
-      headers: { 'X-Custom': 'Value' },
-      attachments: [
-        {
-          filename: 'test.txt',
-          content: 'base64content',
+    expect(client.post).toHaveBeenCalledWith(
+      '/send',
+      {
+        from: 'sender@example.com',
+        to: ['recipient@example.com'],
+        subject: 'Test Subject',
+        html: '<p>HTML Content</p>',
+        text: 'Text content',
+        cc: ['cc@example.com'],
+        bcc: ['bcc@example.com'],
+        reply_to: ['reply@example.com'],
+        headers: { 'X-Custom': 'Value' },
+        metadata: {
+          foo: 'bar',
         },
-      ],
-      route: 'test-route',
-    }, undefined);
+        attachments: [
+          {
+            filename: 'test.txt',
+            content: 'base64content',
+          },
+        ],
+        route: 'test-route',
+      },
+      undefined
+    );
   });
 
   it('should set the idempotency key in the request headers', async () => {
@@ -260,14 +287,10 @@ describe('EmailEndpoint', () => {
     await emailEndpoint.send();
 
     // Verify the idempotency key is included in the request config
-    expect(client.post).toHaveBeenCalledWith(
-      '/send',
-      expect.any(Object),
-      {
-        headers: {
-          'Idempotency-Key': 'unique-id-123'
-        }
-      }
-    );
+    expect(client.post).toHaveBeenCalledWith('/send', expect.any(Object), {
+      headers: {
+        'Idempotency-Key': 'unique-id-123',
+      },
+    });
   });
 });
