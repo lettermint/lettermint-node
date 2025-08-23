@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/lettermint/lettermint-node/compare/v1.1.0...v1.2.0) (2025-08-23)
+
+
+### Features
+
+* add support for metadata in email requests ([4906c0b](https://github.com/lettermint/lettermint-node/commit/4906c0b3e85feec79f5baa555790bb8794c22f46))
+
 # [1.1.0](https://github.com/lettermint/lettermint-node/compare/v1.0.1...v1.1.0) (2025-06-28)
 
 
