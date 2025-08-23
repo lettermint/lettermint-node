@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/lettermint/lettermint-node/compare/v1.2.0...v1.2.1) (2025-08-23)
+
+
+### Bug Fixes
+
+* update README to document metadata functionality ([f488fe3](https://github.com/lettermint/lettermint-node/commit/f488fe38561f0ed655082c60c35f174df3bc90c3))
+
 # [1.2.0](https://github.com/lettermint/lettermint-node/compare/v1.1.0...v1.2.0) (2025-08-23)
 
 
