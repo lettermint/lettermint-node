@@ -59,6 +59,7 @@ const response = await lettermint.email
   .metadata({
     foo: 'bar',
   })
+  .tag('campaign-123')
   .send();
 ```
 
@@ -93,6 +94,7 @@ Methods for sending emails:
 - `route(route: string)`: Set the routing key for the email
 - `idempotencyKey(key: string)`: Set an idempotency key to prevent duplicate email sends
 - `metadata(metadata: Record<string, string>)`: Set metadata for the email
+- `tag(tag: string)`: Set a tag for the email
 - `send()`: Send the email and return a promise with the response
 
 ## License
