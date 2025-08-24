@@ -82,6 +82,11 @@ export interface EmailPayload {
    * The metadata object (optional)
    */
   metadata?: Record<string, string>;
+
+  /**
+   * The tag (optional)
+   */
+  tag?: string;
 }
 
 /**
@@ -299,6 +304,19 @@ export class EmailEndpoint extends Endpoint {
    */
   public metadata(metadata: Record<string, string>): this {
     this.payload.metadata = metadata;
+    return this;
+  }
+
+  /**
+   * Set the tag for the email
+   *
+   * @example tag('campaign-123')
+   *
+   * @param key A string to categorize the email
+   * @returns The current instance for chaining
+   */
+  public tag(tag: string): this {
+    this.payload.tag = tag;
     return this;
   }
 

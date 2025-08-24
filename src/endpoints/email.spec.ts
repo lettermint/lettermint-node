@@ -220,6 +220,23 @@ describe('EmailEndpoint', () => {
     });
   });
 
+  it('should set tag', () => {
+    const tag = 'campaign-123';
+    const result = emailEndpoint.tag(tag);
+
+    expect(result).toBe(emailEndpoint);
+
+    return emailEndpoint.send().then(() => {
+      expect(client.post).toHaveBeenCalledWith(
+        '/send',
+        expect.objectContaining({
+          tag,
+        }),
+        undefined
+      );
+    });
+  });
+
   it('should send the email with all options', async () => {
     // Set up a complete email
     emailEndpoint
@@ -236,7 +253,8 @@ describe('EmailEndpoint', () => {
       .route('test-route')
       .metadata({
         foo: 'bar',
-      });
+      })
+      .tag('campaign-123');
 
     // Send the email
     const response = await emailEndpoint.send();
@@ -270,6 +288,7 @@ describe('EmailEndpoint', () => {
           },
         ],
         route: 'test-route',
+        tag: 'campaign-123',
       },
       undefined
     );
