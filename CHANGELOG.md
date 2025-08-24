@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/lettermint/lettermint-node/compare/v1.2.1...v1.3.0) (2025-08-24)
+
+
+### Features
+
+* add support for tagging emails ([5271cfa](https://github.com/lettermint/lettermint-node/commit/5271cfaba48c0e42ed84ea16cd85d60e5ccf0c11))
+
 ## [1.2.1](https://github.com/lettermint/lettermint-node/compare/v1.2.0...v1.2.1) (2025-08-23)
 
 
