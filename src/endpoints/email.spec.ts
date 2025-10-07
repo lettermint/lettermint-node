@@ -187,6 +187,28 @@ describe('EmailEndpoint', () => {
     });
   });
 
+  it('should add attachments with content_id', () => {
+    const result = emailEndpoint.attach('image.png', 'base64imagedata', 'logo');
+
+    expect(result).toBe(emailEndpoint);
+
+    return emailEndpoint.send().then(() => {
+      expect(client.post).toHaveBeenCalledWith(
+        '/send',
+        expect.objectContaining({
+          attachments: [
+            {
+              filename: 'image.png',
+              content: 'base64imagedata',
+              content_id: 'logo',
+            },
+          ],
+        }),
+        undefined
+      );
+    });
+  });
+
   it('should set the route', () => {
     const result = emailEndpoint.route('test-route');
 
