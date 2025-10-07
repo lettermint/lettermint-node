@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/lettermint/lettermint-node/compare/v1.3.0...v1.4.0) (2025-10-07)
+
+
+### Features
+
+* add support for inline attachments in email requests ([45d9abc](https://github.com/lettermint/lettermint-node/commit/45d9abc464d57453e29d6b3e17877acb1850c791))
+
 # [1.3.0](https://github.com/lettermint/lettermint-node/compare/v1.2.1...v1.3.0) (2025-08-24)
 
 
