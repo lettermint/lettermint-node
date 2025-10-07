@@ -55,6 +55,7 @@ const response = await lettermint.email
     'X-Custom-Header': 'Custom Value',
   })
   .attach('attachment.txt', Buffer.from('Hello World').toString('base64'))
+  .attach('logo.png', Buffer.from('...').toString('base64'), 'logo') // Inline attachment
   .idempotencyKey('unique-id-123')
   .metadata({
     foo: 'bar',
@@ -90,7 +91,7 @@ Methods for sending emails:
 - `bcc(...emails: string[])`: Set one or more BCC email addresses
 - `replyTo(...emails: string[])`: Set one or more Reply-To email addresses
 - `headers(headers: Record<string, string>)`: Set custom headers for the email
-- `attach(filename: string, base64Content: string)`: Attach a file to the email
+- `attach(filename: string, base64Content: string, content_id?: string)`: Attach a file to the email. Optional `content_id` for inline attachments.
 - `route(route: string)`: Set the routing key for the email
 - `idempotencyKey(key: string)`: Set an idempotency key to prevent duplicate email sends
 - `metadata(metadata: Record<string, string>)`: Set metadata for the email

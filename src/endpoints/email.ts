@@ -13,6 +13,11 @@ export interface EmailAttachment {
    * The base64-encoded content of the attachment
    */
   content: string;
+
+  /**
+   * The Content-ID for inline attachments (optional)
+   */
+  content_id?: string;
 }
 
 /**
@@ -279,9 +284,10 @@ export class EmailEndpoint extends Endpoint {
    *
    * @param filename The attachment filename
    * @param content The base64-encoded file content
+   * @param content_id The Content-ID for inline attachments (optional)
    * @returns The current instance for chaining
    */
-  public attach(filename: string, content: string): this {
+  public attach(filename: string, content: string, content_id?: string): this {
     if (!this.payload.attachments) {
       this.payload.attachments = [];
     }
@@ -289,6 +295,7 @@ export class EmailEndpoint extends Endpoint {
     this.payload.attachments.push({
       filename,
       content,
+      ...(content_id && { content_id }),
     });
 
     return this;
