@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/lettermint/lettermint-node/compare/v1.4.0...v1.5.0) (2025-12-23)
+
+
+### Features
+
+* include SDK version and Node.js version in User-Agent header ([2c069a7](https://github.com/lettermint/lettermint-node/commit/2c069a70b96703e5e1f5c1383343bd992f2a6f95))
+
 # [1.4.0](https://github.com/lettermint/lettermint-node/compare/v1.3.0...v1.4.0) (2025-10-07)
 
 
