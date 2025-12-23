@@ -1,4 +1,5 @@
 import { isNativeError } from 'node:util/types';
+import { version } from '../package.json';
 import { ClientError, HttpRequestError, TimeoutError, ValidationError } from './utils/errors';
 
 /**
@@ -59,10 +60,14 @@ export class LettermintClient {
     this.apiToken = config.apiToken;
     this.baseUrl = config.baseUrl || 'https://api.lettermint.co/v1';
     this.timeout = config.timeout || 30000;
+
+    const nodeVersion = process.version.replace(/^v/, '');
+
     this.defaultHeaders = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
       'x-lettermint-token': this.apiToken,
+      'User-Agent': `Lettermint/${version} (Node.js; Node ${nodeVersion})`,
     };
   }
 
