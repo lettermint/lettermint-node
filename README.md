@@ -2,6 +2,8 @@
 
 ![NPM Version](https://img.shields.io/npm/v/lettermint)
 ![NPM Downloads](https://img.shields.io/npm/dm/lettermint)
+[![Join our Discord server](https://img.shields.io/discord/1305510095588819035?logo=discord&logoColor=eee&label=Discord&labelColor=464ce5&color=0D0E28&cacheSeconds=43200)](https://lettermint.co/r/discord)
+
 
 The official Node.js SDK for [Lettermint](https://lettermint.co).
 
