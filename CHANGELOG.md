@@ -1,3 +1,11 @@
+## [1.5.1](https://github.com/lettermint/lettermint-node/compare/v1.5.0...v1.5.1) (2026-02-20)
+
+
+### Bug Fixes
+
+* moved `this.reset()` to a `finally` block to guarantee cleanup even if the send operation fails. ([83343f1](https://github.com/lettermint/lettermint-node/commit/83343f17503f2aea20ba46ce5f264999e3b63f25))
+* reset email properties after each send ([24a17ac](https://github.com/lettermint/lettermint-node/commit/24a17acbc2429c5eb30391f9df3dc0ea7aaf4de1))
+
 # [1.5.0](https://github.com/lettermint/lettermint-node/compare/v1.4.0...v1.5.0) (2025-12-23)
 
 
