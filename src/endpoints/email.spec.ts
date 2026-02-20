@@ -316,6 +316,72 @@ describe('EmailEndpoint', () => {
     );
   });
 
+  it('should reset all payload properties after send', async () => {
+    // First email with all properties set
+    await emailEndpoint
+      .from('sender@example.com')
+      .to('recipient@example.com')
+      .subject('First Subject')
+      .html('<p>First</p>')
+      .text('First')
+      .cc('cc@example.com')
+      .bcc('bcc@example.com')
+      .replyTo('reply@example.com')
+      .headers({ 'X-Custom': 'Value' })
+      .attach('file.txt', 'base64content')
+      .route('first-route')
+      .metadata({ key: 'value' })
+      .tag('first-tag')
+      .idempotencyKey('key-1')
+      .send();
+
+    // Second email with only required properties
+    await emailEndpoint
+      .from('other@example.com')
+      .to('other-recipient@example.com')
+      .subject('Second Subject')
+      .text('Second')
+      .send();
+
+    // Verify second email does NOT contain any properties from the first
+    expect(client.post).toHaveBeenLastCalledWith(
+      '/send',
+      {
+        from: 'other@example.com',
+        to: ['other-recipient@example.com'],
+        subject: 'Second Subject',
+        text: 'Second',
+      },
+      undefined
+    );
+  });
+
+  it('should not accumulate attachments across sends', async () => {
+    await emailEndpoint
+      .from('sender@example.com')
+      .to('recipient@example.com')
+      .subject('First')
+      .text('First')
+      .attach('file1.txt', 'content1')
+      .send();
+
+    await emailEndpoint
+      .from('sender@example.com')
+      .to('recipient@example.com')
+      .subject('Second')
+      .text('Second')
+      .attach('file2.txt', 'content2')
+      .send();
+
+    expect(client.post).toHaveBeenLastCalledWith(
+      '/send',
+      expect.objectContaining({
+        attachments: [{ filename: 'file2.txt', content: 'content2' }],
+      }),
+      undefined
+    );
+  });
+
   it('should set the idempotency key in the request headers', async () => {
     // Set up a basic email with an idempotency key
     emailEndpoint

@@ -338,6 +338,22 @@ export class EmailEndpoint extends Endpoint {
       ? { headers: { 'Idempotency-Key': this.idempotencyKeyValue } }
       : undefined;
 
-    return this.httpClient.post<SendEmailResponse>('/send', this.payload, config);
+    const response = await this.httpClient.post<SendEmailResponse>('/send', this.payload, config);
+
+    this.reset();
+
+    return response;
+  }
+
+  /**
+   * Reset the payload and idempotency key to their initial state
+   */
+  private reset(): void {
+    this.payload = {
+      from: '',
+      to: [],
+      subject: '',
+    };
+    this.idempotencyKeyValue = undefined;
   }
 }
