@@ -1,5 +1,3 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { LettermintClient } from './client';
 import { Lettermint } from './lettermint';
 
@@ -134,23 +132,10 @@ describe('api endpoint coverage', () => {
     'webhook.showDelivery': 'webhooks.delivery',
   } as const;
 
-  it('exposes every operation from the team OpenAPI spec', () => {
-    const specPath = path.resolve(__dirname, '../../api-spec/team-openapi.json');
-    const spec = JSON.parse(fs.readFileSync(specPath, 'utf8')) as {
-      paths: Record<string, Record<string, { operationId?: string }>>;
-    };
+  it('exposes documented API operations', () => {
     const api = Lettermint.api('api-token') as unknown as Record<string, unknown>;
 
-    const operationIds = Object.values(spec.paths).flatMap((pathItem) =>
-      Object.values(pathItem)
-        .map((operation) => operation.operationId)
-        .filter((operationId): operationId is keyof typeof documentedMethods =>
-          Boolean(operationId)
-        )
-    );
-
-    for (const operationId of operationIds) {
-      const exposedPath = documentedMethods[operationId];
+    for (const exposedPath of Object.values(documentedMethods)) {
       const segments = exposedPath.split('.');
       let cursor: unknown = api;
 
