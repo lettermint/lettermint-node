@@ -1,120 +1,10 @@
+import type {
+  EmailPayload,
+  SendBatchEmailResponse,
+  SendBatchMailRequest,
+  SendEmailResponse,
+} from '../types';
 import { Endpoint } from './endpoint';
-
-/**
- * Interface for email attachment
- */
-export interface EmailAttachment {
-  /**
-   * The filename of the attachment
-   */
-  filename: string;
-
-  /**
-   * The base64-encoded content of the attachment
-   */
-  content: string;
-
-  /**
-   * The Content-ID for inline attachments (optional)
-   */
-  content_id?: string;
-}
-
-/**
- * Interface for the email payload
- */
-export interface EmailPayload {
-  /**
-   * The sender's email address
-   */
-  from: string;
-
-  /**
-   * The recipient email addresses
-   */
-  to: string[];
-
-  /**
-   * The email subject
-   */
-  subject: string;
-
-  /**
-   * The HTML content of the email (optional)
-   *
-   * At least one of `text` or `html` is required.
-   */
-  html?: string;
-
-  /**
-   * The plain text content of the email (optional)
-   *
-   * At least one of `text` or `html` is required.
-   */
-  text?: string;
-
-  /**
-   * The CC email addresses (optional)
-   */
-  cc?: string[];
-
-  /**
-   * The BCC email addresses (optional)
-   */
-  bcc?: string[];
-
-  /**
-   * The Reply-To email addresses (optional)
-   */
-  reply_to?: string[];
-
-  /**
-   * Custom headers for the email (optional)
-   */
-  headers?: Record<string, string>;
-
-  /**
-   * Email attachments (optional)
-   */
-  attachments?: EmailAttachment[];
-
-  /**
-   * The route identifier (optional)
-   */
-  route?: string;
-
-  /**
-   * The metadata object (optional)
-   */
-  metadata?: Record<string, string>;
-
-  /**
-   * The tag (optional)
-   */
-  tag?: string;
-}
-
-/**
- * Response from the send email API
- */
-export interface SendEmailResponse {
-  /**
-   * The unique message ID
-   */
-  message_id: string;
-
-  /**
-   * The status of the message
-   */
-  status:
-    | 'pending'
-    | 'queued'
-    | 'processed'
-    | 'delivered'
-    | 'soft_bounced'
-    | 'hard_bounced'
-    | 'failed';
-}
 
 /**
  * Endpoint for sending emails
@@ -343,6 +233,14 @@ export class EmailEndpoint extends Endpoint {
     } finally {
       this.reset();
     }
+  }
+
+  public async sendBatch(payload: SendBatchMailRequest): Promise<SendBatchEmailResponse> {
+    return this.httpClient.post<SendBatchEmailResponse>('/send/batch', payload);
+  }
+
+  public async ping(): Promise<string> {
+    return (await this.httpClient.getRaw('/ping')).trim();
   }
 
   /**
