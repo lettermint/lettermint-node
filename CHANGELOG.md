@@ -1,3 +1,16 @@
+# [2.0.0](https://github.com/lettermint/lettermint-node/compare/v1.5.1...v2.0.0) (2026-05-11)
+
+
+### Features
+
+* implement Team API API endpoints ([#14](https://github.com/lettermint/lettermint-node/issues/14)) ([3ec0837](https://github.com/lettermint/lettermint-node/commit/3ec08379503c12789af7946ebe488435c82960a3))
+* release SDK v2 ([2d37374](https://github.com/lettermint/lettermint-node/commit/2d37374dc26b051d7a85cf5d767daa85a2ae710e))
+
+
+### BREAKING CHANGES
+
+* SDK v2 changes client structure, response types, and token configuration.
+
 ## [1.5.1](https://github.com/lettermint/lettermint-node/compare/v1.5.0...v1.5.1) (2026-02-20)
 
 
