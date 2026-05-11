@@ -178,6 +178,22 @@ describe('LettermintClient', () => {
     );
   });
 
+  it('should reject absolute request paths', async () => {
+    await expect(client.get('https://attacker.example.test/collect')).rejects.toThrow(
+      'Request path must be relative'
+    );
+
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('should reject protocol-relative request paths', async () => {
+    await expect(client.post('//attacker.example.test/collect', {})).rejects.toThrow(
+      'Request path must be relative'
+    );
+
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
   it('should handle HTTP errors', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,

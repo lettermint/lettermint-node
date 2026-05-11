@@ -40,6 +40,11 @@ export interface LettermintClientConfig {
    * Timeout in milliseconds (optional, defaults to 30000)
    */
   timeout?: number;
+
+  /**
+   * Authentication surface for this client.
+   */
+  authMode?: 'sending' | 'api';
 }
 
 /**
@@ -50,6 +55,7 @@ export class LettermintClient {
   private readonly apiToken: string;
   private readonly timeout: number;
   private readonly defaultHeaders: Record<string, string>;
+  private readonly authMode: 'sending' | 'api';
 
   /**
    * Create a new Lettermint client
@@ -60,13 +66,13 @@ export class LettermintClient {
     this.apiToken = config.apiToken;
     this.baseUrl = config.baseUrl || 'https://api.lettermint.co/v1';
     this.timeout = config.timeout || 30000;
+    this.authMode = config.authMode || 'sending';
 
     const nodeVersion = process.version.replace(/^v/, '');
 
     this.defaultHeaders = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      'x-lettermint-token': this.apiToken,
       'User-Agent': `Lettermint/${version} (Node.js; Node ${nodeVersion})`,
     };
   }
@@ -131,6 +137,10 @@ export class LettermintClient {
    * @returns The full URL
    */
   private buildUrl(path: string, params?: Record<string, string>): string {
+    if (/^[a-z][a-z\d+\-.]*:/i.test(path) || path.startsWith('//')) {
+      throw new Error('Request path must be relative');
+    }
+
     const pathSegment = path.startsWith('/') ? path.substring(1) : path;
     const effectiveBaseUrl = this.baseUrl.endsWith('/') ? this.baseUrl : `${this.baseUrl}/`;
     const url = new URL(pathSegment, effectiveBaseUrl);
@@ -144,6 +154,22 @@ export class LettermintClient {
     return url.toString();
   }
 
+  private buildHeaders(headers?: Record<string, string>): Record<string, string> {
+    const sanitizedHeaders = Object.fromEntries(
+      Object.entries(headers || {}).filter(
+        ([key]) => !['authorization', 'x-lettermint-token'].includes(key.toLowerCase())
+      )
+    );
+
+    return {
+      ...this.defaultHeaders,
+      ...sanitizedHeaders,
+      ...(this.authMode === 'api'
+        ? { Authorization: `Bearer ${this.apiToken}` }
+        : { 'x-lettermint-token': this.apiToken }),
+    };
+  }
+
   /**
    * Make a GET request to the API
    *
@@ -154,10 +180,7 @@ export class LettermintClient {
   public async get<T>(path: string, config?: RequestConfig): Promise<T> {
     const url = this.buildUrl(path, config?.params);
 
-    const headers = {
-      ...this.defaultHeaders,
-      ...config?.headers,
-    };
+    const headers = this.buildHeaders(config?.headers);
 
     const response = await this.fetchWithTimeout(url, {
       method: 'GET',
@@ -165,6 +188,18 @@ export class LettermintClient {
     });
 
     return response.json();
+  }
+
+  public async getRaw(path: string, config?: RequestConfig): Promise<string> {
+    const url = this.buildUrl(path, config?.params);
+    const headers = this.buildHeaders(config?.headers);
+
+    const response = await this.fetchWithTimeout(url, {
+      method: 'GET',
+      headers,
+    });
+
+    return response.text();
   }
 
   /**
@@ -178,10 +213,7 @@ export class LettermintClient {
   public async post<T>(path: string, data?: unknown, config?: RequestConfig): Promise<T> {
     const url = this.buildUrl(path, config?.params);
 
-    const headers = {
-      ...this.defaultHeaders,
-      ...config?.headers,
-    };
+    const headers = this.buildHeaders(config?.headers);
 
     const response = await this.fetchWithTimeout(url, {
       method: 'POST',
@@ -203,10 +235,7 @@ export class LettermintClient {
   public async put<T>(path: string, data?: unknown, config?: RequestConfig): Promise<T> {
     const url = this.buildUrl(path, config?.params);
 
-    const headers = {
-      ...this.defaultHeaders,
-      ...config?.headers,
-    };
+    const headers = this.buildHeaders(config?.headers);
 
     const response = await this.fetchWithTimeout(url, {
       method: 'PUT',
@@ -227,10 +256,7 @@ export class LettermintClient {
   public async delete<T>(path: string, config?: RequestConfig): Promise<T> {
     const url = this.buildUrl(path, config?.params);
 
-    const headers = {
-      ...this.defaultHeaders,
-      ...config?.headers,
-    };
+    const headers = this.buildHeaders(config?.headers);
 
     const response = await this.fetchWithTimeout(url, {
       method: 'DELETE',

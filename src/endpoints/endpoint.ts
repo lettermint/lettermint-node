@@ -17,4 +17,8 @@ export abstract class Endpoint {
   constructor(client: LettermintClient) {
     this.httpClient = client;
   }
+
+  protected pathSegment(value: string): string {
+    return encodeURIComponent(value);
+  }
 }

@@ -4,7 +4,7 @@
     "enabled": true
   },
   "files": {
-    "ignore": ["package.json"]
+    "ignore": ["package.json", "coverage/**", "dist/**", "src/types.ts"]
   },
   "linter": {
     "enabled": true,
