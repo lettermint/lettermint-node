@@ -15,22 +15,20 @@ npm install lettermint
 
 ## Usage
 
-### Initialize the SDK
+### Sending Emails
+
+Use a project sending token with `Lettermint.email(...)`. Sending tokens authenticate with the `x-lettermint-token` header.
 
 ```typescript
 import { Lettermint } from "lettermint";
 
-const lettermint = new Lettermint({
-    apiToken: "your-api-token"
-});
+const email = Lettermint.email(process.env.LETTERMINT_SENDING_TOKEN!);
 ```
-
-### Sending Emails
 
 The SDK provides a fluent interface for sending emails:
 
 ```typescript
-const response = await lettermint.email
+const response = await email
   .from('sender@acme.com')
   .to('recipient@acme.com')
   .subject('Hello from Lettermint')
@@ -44,7 +42,7 @@ console.log(`Status: ${response.status}`);
 #### Advanced Email Options
 
 ```typescript
-const response = await lettermint.email
+const response = await email
   .from('John Doe <sender@acme.com>')
   .to('recipient1@acme.com', 'recipient2@acme.com')
   .cc('cc@acme.com')
@@ -66,17 +64,67 @@ const response = await lettermint.email
   .send();
 ```
 
+The legacy constructor still works for sending-only usage:
+
+```typescript
+const lettermint = new Lettermint({ apiToken: 'your-sending-token' });
+await lettermint.email.from('sender@acme.com').to('recipient@acme.com').subject('Hello').send();
+```
+
+### Batch Sending
+
+```typescript
+const response = await email.sendBatch([
+  {
+    from: 'sender@acme.com',
+    to: ['recipient@acme.com'],
+    subject: 'Hello from Lettermint',
+    text: 'This is a batch email.',
+  },
+]);
+```
+
+### Team API
+
+Use a team API token with `Lettermint.api(...)`. API tokens authenticate with `Authorization: Bearer ...` and are separate from project sending tokens.
+
+```typescript
+const api = Lettermint.api(process.env.LETTERMINT_API_TOKEN!);
+
+const domains = await api.domains.list({ 'page[size]': '10' });
+const project = await api.projects.create({
+  name: 'Production',
+  smtp_enabled: true,
+});
+const stats = await api.stats.retrieve({
+  start: '2026-01-01',
+  end: '2026-01-31',
+});
+const messageHtml = await api.messages.html('message-id');
+```
+
+Both API surfaces support `ping()`:
+
+```typescript
+await email.ping();
+await api.ping();
+```
+
 ## API Reference
 
 ### Lettermint Class
 
-The main entry point for the SDK.
+The main entry points for the SDK.
 
 ```typescript
-const lettermint = new Lettermint({
-  apiToken: 'your-api-key',
-  baseUrl: 'https://api.lettermint.co/v1', // Optional
-  timeout: 30000, // Optional, in milliseconds
+const email = Lettermint.email('your-sending-token', {
+  baseUrl: 'https://api.lettermint.co/v1',
+  timeout: 30000,
+});
+
+const api = Lettermint.api('your-api-token', {
+  baseUrl: 'https://api.lettermint.co/v1',
+  timeout: 30000,
 });
 ```
 
@@ -99,6 +147,12 @@ Methods for sending emails:
 - `metadata(metadata: Record<string, string>)`: Set metadata for the email
 - `tag(tag: string)`: Set a tag for the email
 - `send()`: Send the email and return a promise with the response
+- `sendBatch(payload)`: Send multiple email payloads in one request
+- `ping()`: Ping the Sending API and return the raw response body
+
+### API Endpoint Groups
+
+The full API client exposes `domains`, `messages`, `projects`, `routes`, `stats`, `suppressions`, `team`, and `webhooks`. Request and response types are exported from the package.
 
 ## License
 
