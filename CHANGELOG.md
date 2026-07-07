@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/lettermint/lettermint-node/compare/v2.0.0...v2.1.0) (2026-07-07)
+
+
+### Features
+
+* add route settings, webhook auto-reply events, and blocked file types ([#17](https://github.com/lettermint/lettermint-node/issues/17)) ([a598cf3](https://github.com/lettermint/lettermint-node/commit/a598cf3e3b011129275ee9c2a7a003fe82de7ce8))
+
 # [2.0.0](https://github.com/lettermint/lettermint-node/compare/v1.5.1...v2.0.0) (2026-05-11)
 
 
