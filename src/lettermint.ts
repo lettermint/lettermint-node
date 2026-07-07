@@ -1,5 +1,4 @@
 import { LettermintClient, type LettermintClientConfig } from './client';
-import type * as Types from './types';
 import {
   DomainsEndpoint,
   MessagesEndpoint,
@@ -11,6 +10,7 @@ import {
   WebhooksEndpoint,
 } from './endpoints/api';
 import { EmailEndpoint } from './endpoints/email';
+import type * as Types from './types';
 
 /**
  * Lettermint SDK
