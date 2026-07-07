@@ -1,4 +1,5 @@
 import { LettermintClient, type LettermintClientConfig } from './client';
+import type * as Types from './types';
 import {
   DomainsEndpoint,
   MessagesEndpoint,
@@ -79,6 +80,10 @@ export class ApiClient {
 
   public async ping(): Promise<string> {
     return (await this.client.getRaw('/ping')).trim();
+  }
+
+  public async blockedFileTypes(): Promise<Types.BlockedFileTypesResponse> {
+    return this.client.get('/blocked-file-types');
   }
 }
 

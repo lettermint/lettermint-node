@@ -1,5 +1,6 @@
 import { LettermintClient } from './client';
 import { Lettermint } from './lettermint';
+import type * as Types from './types';
 
 const mockFetch = jest.fn();
 
@@ -48,6 +49,33 @@ describe('public SDK surface', () => {
     expect(mockFetch.mock.calls[0][1].headers).not.toHaveProperty('x-lettermint-token');
   });
 
+  it('lists blocked file types with bearer token auth', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        extensions: ['exe'],
+        mime_types: ['application/x-msdownload'],
+      }),
+      text: async () => '',
+    } as Response);
+    const api = Lettermint.api('api-token');
+
+    await expect(api.blockedFileTypes()).resolves.toEqual({
+      extensions: ['exe'],
+      mime_types: ['application/x-msdownload'],
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://api.lettermint.co/v1/blocked-file-types',
+      expect.objectContaining({
+        method: 'GET',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer api-token',
+        }),
+      })
+    );
+  });
+
   it('does not let custom headers override SDK auth headers', async () => {
     const client = new LettermintClient({ apiToken: 'api-token', authMode: 'api' });
 
@@ -92,6 +120,7 @@ describe('api endpoint coverage', () => {
     'domain.verifySpecificDnsRecord': 'domains.verifyDnsRecord',
     'domain.updateProjects': 'domains.updateProjects',
     'v1.ping': 'ping',
+    'v1.blockedFileTypes': 'blockedFileTypes',
     'message.index': 'messages.list',
     'message.show': 'messages.retrieve',
     'message.events': 'messages.events',
@@ -146,5 +175,66 @@ describe('api endpoint coverage', () => {
       expect(cursor).toBeDefined();
       expect(typeof cursor).toBe('function');
     }
+  });
+});
+
+describe('generated api types', () => {
+  it('matches current Team API schema additions', () => {
+    const messageEvent: Types.MessageEventType = 'auto_replied';
+    const webhookEvent: Types.WebhookEvent = 'message.auto_replied';
+    const volumeTier: Types.VolumeTier = 300000;
+    const suppression: Types.StoreSuppressionData = {
+      reason: 'manual',
+      scope: 'global',
+      emails: ['blocked@example.com'],
+    };
+    const routeSettings: Types.UpdateRouteSettingsData = {
+      redact_email_content: true,
+      disable_plaintext_generation: false,
+    };
+    const routeInboundSettings: Types.UpdateRouteInboundSettingsData = {
+      inbound_domain: 'inbound.example.com',
+      inbound_spam_threshold: 3,
+      attachment_delivery: 'url',
+    };
+    const routeUpdate: Types.UpdateRouteData = {
+      settings: routeSettings,
+      inbound_settings: routeInboundSettings,
+    };
+    const projectCreate: Types.StoreProjectData = {
+      name: 'Production',
+      short_token: true,
+    };
+    const project: Types.ProjectData = {
+      id: 'project_123',
+      name: 'Production',
+      smtp_enabled: true,
+      redact_email_content: true,
+      default_route_id: null,
+      token_generated_at: null,
+      token_last_used_at: null,
+      token_last_used_ip: null,
+      created_at: '2026-06-28T00:00:00Z',
+      updated_at: '2026-06-28T00:00:00Z',
+    };
+    const projectUpdate: Types.UpdateProjectData = {
+      redact_email_content: false,
+    };
+    const blockedFileTypes: Types.BlockedFileTypesResponse = {
+      extensions: ['exe'],
+      mime_types: ['application/x-msdownload'],
+    };
+
+    expect({
+      messageEvent,
+      webhookEvent,
+      volumeTier,
+      suppression,
+      routeUpdate,
+      projectCreate,
+      project,
+      projectUpdate,
+      blockedFileTypes,
+    }).toBeDefined();
   });
 });
