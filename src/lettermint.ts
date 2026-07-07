@@ -10,6 +10,7 @@ import {
   WebhooksEndpoint,
 } from './endpoints/api';
 import { EmailEndpoint } from './endpoints/email';
+import type * as Types from './types';
 
 /**
  * Lettermint SDK
@@ -79,6 +80,10 @@ export class ApiClient {
 
   public async ping(): Promise<string> {
     return (await this.client.getRaw('/ping')).trim();
+  }
+
+  public async blockedFileTypes(): Promise<Types.BlockedFileTypesResponse> {
+    return this.client.get('/blocked-file-types');
   }
 }
 

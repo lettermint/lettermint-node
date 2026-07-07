@@ -128,7 +128,7 @@ export interface MessageEventData {
   "timestamp": string;
 }
 
-export type MessageEventType = "queued" | "processed" | "suppressed" | "delivered" | "soft_bounced" | "hard_bounced" | "spam_complaint" | "failed" | "blocked" | "policy_rejected" | "unsubscribed" | "opened" | "clicked" | "inbound_received" | "inbound_queued" | "inbound_spam_blocked" | "inbound_processed" | "inbound_retry";
+export type MessageEventType = "queued" | "processed" | "suppressed" | "delivered" | "auto_replied" | "soft_bounced" | "hard_bounced" | "spam_complaint" | "failed" | "blocked" | "policy_rejected" | "unsubscribed" | "opened" | "clicked" | "inbound_received" | "inbound_queued" | "inbound_spam_blocked" | "inbound_processed" | "inbound_retry";
 
 export interface MessageListData {
   "id": string;
@@ -165,6 +165,7 @@ export interface ProjectData {
   "id": string;
   "name": string;
   "smtp_enabled": boolean;
+  "redact_email_content": boolean;
   "default_route_id": string | null;
   "token_generated_at": string | null;
   "token_last_used_at": string | null;
@@ -313,6 +314,7 @@ export interface StoreProjectData {
   "name": string;
   "smtp_enabled"?: boolean;
   "initial_routes"?: InitialRoutes;
+  "short_token"?: boolean;
 }
 
 export interface StoreRouteData {
@@ -324,7 +326,7 @@ export interface StoreRouteData {
 export interface StoreSuppressionData {
   "email"?: string | null;
   "reason": SuppressionReason;
-  "scope": "team" | "project" | "route";
+  "scope": SuppressionScope;
   "route_id"?: string | null;
   "project_id"?: string | null;
   "emails"?: string[] | null;
@@ -405,6 +407,7 @@ export interface UpdateDomainProjectsData {
 export interface UpdateProjectData {
   "name"?: string | null;
   "smtp_enabled"?: boolean | null;
+  "redact_email_content"?: boolean | null;
   "default_route_id"?: string | null;
 }
 
@@ -414,16 +417,22 @@ export interface UpdateProjectMembersData {
 
 export interface UpdateRouteData {
   "name"?: string | null;
-  "settings"?: {
-  "track_opens"?: boolean | null;
-  "track_clicks"?: boolean | null;
-  "disable_hosted_unsubscribe"?: boolean | null;
-};
-  "inbound_settings"?: {
+  "settings"?: UpdateRouteSettingsData | unknown;
+  "inbound_settings"?: UpdateRouteInboundSettingsData | unknown;
+}
+
+export interface UpdateRouteInboundSettingsData {
   "inbound_domain"?: string | null;
   "inbound_spam_threshold"?: number | null;
-  "attachment_delivery"?: AttachmentDelivery;
-};
+  "attachment_delivery"?: AttachmentDelivery | unknown;
+}
+
+export interface UpdateRouteSettingsData {
+  "track_opens"?: boolean | null;
+  "track_clicks"?: boolean | null;
+  "disable_plaintext_generation"?: boolean | null;
+  "disable_hosted_unsubscribe"?: boolean | null;
+  "redact_email_content"?: boolean | null;
 }
 
 export interface UpdateTeamData {
@@ -445,7 +454,7 @@ export interface UserData {
   "avatar": string | null;
 }
 
-export type VolumeTier = 300 | 10000 | 50000 | 125000 | 500000 | 750000 | 1000000 | 1500000;
+export type VolumeTier = 300 | 10000 | 50000 | 125000 | 300000 | 500000 | 750000 | 1000000 | 1500000;
 
 export interface WebhookData {
   "id": string;
@@ -491,7 +500,7 @@ export interface WebhookDeliveryListData {
 
 export type WebhookDeliveryStatus = "pending" | "success" | "failed" | "client_error" | "server_error" | "timeout";
 
-export type WebhookEvent = "message.created" | "message.sent" | "message.delivered" | "message.hard_bounced" | "message.soft_bounced" | "message.spam_complaint" | "message.failed" | "message.suppressed" | "message.unsubscribed" | "message.opened" | "message.clicked" | "message.inbound" | "message.policy_rejected" | "webhook.test";
+export type WebhookEvent = "message.created" | "message.sent" | "message.delivered" | "message.auto_replied" | "message.hard_bounced" | "message.soft_bounced" | "message.spam_complaint" | "message.failed" | "message.suppressed" | "message.unsubscribed" | "message.opened" | "message.clicked" | "message.inbound" | "message.policy_rejected" | "webhook.test";
 
 export interface WebhookListData {
   "id": string;
@@ -543,6 +552,10 @@ export type DomainUpdateProjectsResponse = {
   "data": DomainData;
   "message": "Domain projects updated successfully.";
 };
+export type BlockedFileTypesResponse = {
+  "extensions": string[];
+  "mime_types": string[];
+};
 export type MessageIndexResponse = {
   "data": MessageListData[];
   "path": string | null;
@@ -589,7 +602,7 @@ export type ProjectDestroyResponse = {
 export type ProjectRotateTokenResponse = {
   "data": ProjectData;
   "new_token": string;
-  "message": "API token rotated successfully. Please update your integrations.";
+  "message": "Project API token rotated successfully. Please update your integrations.";
 };
 export type ProjectUpdateMembersRequest = UpdateProjectMembersData;
 export type ProjectUpdateMembersResponse = {
