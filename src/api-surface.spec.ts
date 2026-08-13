@@ -108,6 +108,34 @@ describe('public SDK surface', () => {
       })
     );
   });
+
+  it('maps reusable team role and member assignment endpoints', async () => {
+    const api = Lettermint.api('api-token');
+    const assignment: Types.TeamMembersAssignmentUpdateRequest = {
+      role_id: 'role_123',
+      project_access: { scope: 'all' },
+    };
+
+    await api.team.roles();
+    await api.team.member('user/id');
+    await api.team.updateMemberAssignment('user/id', assignment);
+
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      1,
+      'https://api.lettermint.co/v1/team/roles',
+      expect.objectContaining({ method: 'GET' })
+    );
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      2,
+      'https://api.lettermint.co/v1/team/members/user%2Fid',
+      expect.objectContaining({ method: 'GET' })
+    );
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      3,
+      'https://api.lettermint.co/v1/team/members/user%2Fid/assignment',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify(assignment) })
+    );
+  });
 });
 
 describe('api endpoint coverage', () => {
@@ -133,9 +161,6 @@ describe('api endpoint coverage', () => {
     'project.update': 'projects.update',
     'project.destroy': 'projects.delete',
     'project.rotateToken': 'projects.rotateToken',
-    'project.updateMembers': 'projects.updateMembers',
-    'project.addMember': 'projects.addMember',
-    'project.removeMember': 'projects.removeMember',
     'route.index': 'projects.routes',
     'route.store': 'projects.createRoute',
     'route.show': 'routes.retrieve',
@@ -149,7 +174,10 @@ describe('api endpoint coverage', () => {
     'team.show': 'team.retrieve',
     'team.update': 'team.update',
     'team.usage': 'team.usage',
+    'team.roles': 'team.roles',
     'team.members': 'team.members',
+    'team.members.show': 'team.member',
+    'team.members.assignment.update': 'team.updateMemberAssignment',
     'webhook.index': 'webhooks.list',
     'webhook.store': 'webhooks.create',
     'webhook.show': 'webhooks.retrieve',
@@ -182,7 +210,7 @@ describe('generated api types', () => {
   it('matches current Team API schema additions', () => {
     const messageEvent: Types.MessageEventType = 'auto_replied';
     const webhookEvent: Types.WebhookEvent = 'message.auto_replied';
-    const volumeTier: Types.VolumeTier = 300000;
+    const builtInRole: Types.BuiltInTeamRole = 'admin';
     const suppression: Types.StoreSuppressionData = {
       reason: 'manual',
       scope: 'global',
@@ -190,7 +218,8 @@ describe('generated api types', () => {
     };
     const routeSettings: Types.UpdateRouteSettingsData = {
       redact_email_content: true,
-      disable_plaintext_generation: false,
+      generate_plaintext_fallback: false,
+      tls: 'enforced',
     };
     const routeInboundSettings: Types.UpdateRouteInboundSettingsData = {
       inbound_domain: 'inbound.example.com',
@@ -224,17 +253,48 @@ describe('generated api types', () => {
       extensions: ['exe'],
       mime_types: ['application/x-msdownload'],
     };
+    const teamRole: Types.TeamRoleData = {
+      id: 'role_123',
+      name: 'Admin',
+      system_key: builtInRole,
+      permissions: ['members:manage'],
+      assignable: true,
+    };
+    const assignment: Types.UpdateTeamMemberAssignmentData = {
+      role_id: 'role_123',
+      project_access: { scope: 'selected', project_ids: ['project_123'] },
+    };
+    const domain: Types.DomainData = {
+      id: 'domain_123',
+      domain: 'example.com',
+      dkim_mode: 'managed_cname',
+      rotation_ready: true,
+      status_changed_at: null,
+      created_at: '2026-08-12T00:00:00Z',
+    };
+    const sourceMessage: Types.SuppressionSourceMessageData = {
+      id: 'msg_123',
+      available: true,
+      subject: 'Blocked',
+      created_at: '2026-08-12T00:00:00Z',
+    };
+    const spamScore: Types.MessageListData['spam_score'] = 2.5;
 
     expect({
       messageEvent,
       webhookEvent,
-      volumeTier,
+      builtInRole,
       suppression,
       routeUpdate,
       projectCreate,
       project,
       projectUpdate,
       blockedFileTypes,
+      teamRole,
+      assignment,
+      domain,
+      sourceMessage,
+      spamScore,
     }).toBeDefined();
   });
 });

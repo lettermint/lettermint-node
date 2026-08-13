@@ -7,20 +7,21 @@ export type MessageStatus = "pending" | "queued" | "suppressed" | "processed" | 
 export interface SendMailRequest {
   "route"?: string;
   "from": string;
-  "subject": string;
-  "tag"?: string | null;
-  "html"?: string | null;
-  "text"?: string | null;
   "to": string[];
   "cc"?: string[];
   "bcc"?: string[];
   "reply_to"?: string[];
+  "subject": string;
   "headers"?: Record<string, string>;
   "metadata"?: Record<string, string>;
+  "tag"?: string | null;
   "settings"?: {
   "track_opens"?: boolean;
   "track_clicks"?: boolean;
+  "tls"?: TlsPolicy;
 } | null;
+  "html"?: string | null;
+  "text"?: string | null;
   "attachments"?: {
   "filename": string;
   "content": string;
@@ -43,6 +44,7 @@ export type SendBatchMailRequest = {
   "settings"?: {
   "track_opens"?: boolean;
   "track_clicks"?: boolean;
+  "tls"?: TlsPolicy;
 } | null;
   "html"?: string | null;
   "text"?: string | null;
@@ -54,13 +56,35 @@ export type SendBatchMailRequest = {
 }[];
 }[];
 
+export type TlsPolicy = "opportunistic" | "enforced";
+
 export type AttachmentDelivery = "inline" | "url";
 
+export type BuiltInTeamRole = "owner" | "admin" | "member";
+
+export interface CursorPaginator {
+  "data": string[];
+  "path": string | null;
+  "per_page": number;
+  "next_cursor": string | null;
+  "next_page_url": string | null;
+  "prev_cursor": string | null;
+  "prev_page_url": string | null;
+}
+
+export type DkimMode = "legacy_txt" | "managed_cname";
+
+export type DnsRecordPurpose = "return_path" | "dmarc" | "dkim_legacy" | "dkim_primary" | "dkim_secondary";
+
 export type DnsRecordStatus = "active" | "failed" | "pending";
+
+export type DnsVerificationScope = "required" | "recommended" | "migration" | "deprecated";
 
 export interface DomainData {
   "id": string;
   "domain": string;
+  "dkim_mode": DkimMode;
+  "rotation_ready": boolean;
   "status_changed_at": string | null;
   "dns_records"?: DomainDnsRecordData[];
   "projects"?: {
@@ -77,6 +101,9 @@ export interface DomainDnsRecordData {
   "fqdn": string;
   "content": string;
   "status": DnsRecordStatus;
+  "purpose": DnsRecordPurpose;
+  "verification_scope": DnsVerificationScope;
+  "required_for_verification": boolean;
   "verified_at": string | null;
   "last_checked_at": string | null;
 }
@@ -85,6 +112,7 @@ export interface DomainListData {
   "id": string;
   "domain": string;
   "status": DomainStatus;
+  "dkim_mode": DkimMode;
   "status_changed_at": string | null;
   "created_at": string;
 }
@@ -134,6 +162,7 @@ export interface MessageListData {
   "id": string;
   "type": MessageType;
   "status": MessageStatus;
+  "spam_score"?: number | null;
   "from_email": string;
   "from_name": string | null;
   "subject": string | null;
@@ -142,6 +171,7 @@ export interface MessageListData {
   "bcc": MessageRecipientData[] | null;
   "reply_to": string[] | null;
   "tag": string | null;
+  "status_changed_at": string | null;
   "created_at": string;
 }
 
@@ -161,6 +191,8 @@ export type MessageType = "inbound" | "outbound";
 
 export type Plan = "free" | "starter" | "growth" | "pro";
 
+export type ProjectAccessScope = "all" | "selected";
+
 export interface ProjectData {
   "id": string;
   "name": string;
@@ -174,9 +206,7 @@ export interface ProjectData {
   "routes_count"?: number;
   "domains"?: DomainData[];
   "domains_count"?: number;
-  "team_members"?: TeamMemberData[];
-  "team_members_count"?: number;
-  "last_28_days"?: MessageStatsData | unknown;
+  "last_28_days"?: MessageStatsData | null;
   "created_at": string;
   "updated_at": string;
 }
@@ -187,11 +217,14 @@ export interface ProjectListData {
   "smtp_enabled": boolean;
   "routes_count": number;
   "domains_count": number;
-  "team_members_count": number;
   "last_28_days": MessageStatsData;
   "created_at": string;
   "updated_at": string;
 }
+
+export type RbacConflictCode = "stale_resource" | "owner_protected" | "last_owner" | "built_in_role_immutable" | "custom_role_requires_pro";
+
+export type RbacPermission = "team:manage" | "billing:manage" | "security:manage" | "audit:read" | "support:manage" | "members:read" | "members:manage" | "roles:manage" | "team_tokens:read" | "team_tokens:manage" | "team_tokens:rotate" | "team_tokens:revoke" | "projects:create" | "team_suppressions:read" | "team_suppressions:add" | "team_suppressions:remove" | "projects:read" | "projects:manage" | "projects:delete" | "routes:read" | "routes:manage" | "routes:delete" | "domains:read" | "domains:manage" | "domains:delete" | "project_tokens:read" | "project_tokens:manage" | "project_tokens:rotate" | "project_tokens:revoke" | "webhooks:read" | "webhooks:manage" | "webhooks:delete" | "webhooks:rotate_secret" | "stats:read" | "messages:read" | "messages:read_content" | "messages:send" | "suppressions:read" | "suppressions:add" | "suppressions:remove";
 
 export type RecordType = "TXT" | "CNAME" | "MX";
 
@@ -202,16 +235,26 @@ export interface RouteData {
   "name": string;
   "route_type": RouteType;
   "is_default": boolean;
-  "inbound_address"?: string;
-  "inbound_domain"?: string;
-  "inbound_domain_verified_at"?: string;
-  "inbound_spam_threshold"?: number;
+  "inbound_address"?: string | null;
+  "inbound_domain"?: string | null;
+  "inbound_domain_verified_at"?: string | null;
+  "inbound_spam_threshold"?: number | null;
   "attachment_delivery"?: AttachmentDelivery;
+  "settings"?: {
+  "disable_hosted_unsubscribe"?: boolean;
+  "track_opens"?: boolean;
+  "track_clicks"?: boolean;
+  "generate_plaintext_fallback"?: boolean;
+  "suppress_auto_responders"?: boolean;
+  "tls"?: TlsPolicy;
+  "redact_email_content"?: boolean;
+  "attachment_delivery"?: {
+};
+} | null;
   "project"?: ProjectData;
   "webhooks_count"?: number;
   "suppressed_recipients_count"?: number;
-  "statistics"?: {
-} | RouteStatisticData[];
+  "statistics"?: RouteStatisticData[];
   "created_at": string;
   "updated_at": string;
 }
@@ -237,6 +280,9 @@ export interface RouteStatisticData {
   "hard_bounce_count": number;
   "spam_complaint_count": number;
   "inbound_received_count": number;
+  "observed_opened_count"?: number | null;
+  "human_opened_count"?: number | null;
+  "privacy_opened_count"?: number | null;
   "effective_opened_count": number | null;
   "machine_opened_count": number | null;
   "machine_clicked_count": number | null;
@@ -260,8 +306,11 @@ export interface StatsDailyData {
   "opened": number | null;
   "clicked": number | null;
   "inbound": StatsInboundData;
-  "transactional": StatsTypeData | unknown;
-  "broadcast": StatsTypeData | unknown;
+  "transactional": StatsTypeData | null;
+  "broadcast": StatsTypeData | null;
+  "observed_opened"?: number | null;
+  "human_opened"?: number | null;
+  "privacy_opened"?: number | null;
   "effective_opened": number | null;
   "machine_opened": number | null;
   "machine_clicked": number | null;
@@ -293,8 +342,11 @@ export interface StatsTotalsData {
   "opened": number | null;
   "clicked": number | null;
   "inbound": StatsInboundData;
-  "transactional": StatsTypeData | unknown;
-  "broadcast": StatsTypeData | unknown;
+  "transactional": StatsTypeData | null;
+  "broadcast": StatsTypeData | null;
+  "observed_opened"?: number | null;
+  "human_opened"?: number | null;
+  "privacy_opened"?: number | null;
   "effective_opened": number | null;
   "machine_opened": number | null;
   "machine_clicked": number | null;
@@ -325,20 +377,20 @@ export interface StoreRouteData {
 
 export interface StoreSuppressionData {
   "email"?: string | null;
+  "emails"?: string[] | null;
   "reason": SuppressionReason;
   "scope": SuppressionScope;
   "route_id"?: string | null;
   "project_id"?: string | null;
-  "emails"?: string[] | null;
 }
 
 export interface StoreWebhookData {
   "route_id": string;
   "name": string;
   "url": string;
+  "events": WebhookEvent[];
   "enabled"?: boolean | null;
   "include_machine_events"?: boolean | null;
-  "events": WebhookEvent[];
 }
 
 export interface SuppressedRecipientData {
@@ -349,6 +401,7 @@ export interface SuppressedRecipientData {
   "scope": SuppressionScope;
   "project_id": string | null;
   "route_id": string | null;
+  "source_message"?: SuppressionSourceMessageData | null;
   "created_at": string;
   "updated_at": string;
 }
@@ -356,6 +409,13 @@ export interface SuppressedRecipientData {
 export type SuppressionReason = "spam_complaint" | "hard_bounce" | "unsubscribe" | "manual";
 
 export type SuppressionScope = "global" | "team" | "project" | "route";
+
+export interface SuppressionSourceMessageData {
+  "id": string;
+  "available": boolean;
+  "subject": string | null;
+  "created_at": string | null;
+}
 
 export type SuppressionType = "email" | "domain" | "extension";
 
@@ -369,7 +429,8 @@ export interface TeamData {
   "name": string;
   "type": TeamType;
   "plan": Plan;
-  "tier": VolumeTier;
+  "included_volume": number;
+  "tier": number;
   "verified_at": string | null;
   "features"?: string[];
   "addons"?: TeamAddonData[];
@@ -381,9 +442,30 @@ export interface TeamData {
 
 export interface TeamMemberData {
   "id": string;
-  "user"?: UserData;
-  "role": string | null;
+  "name": string;
+  "email": string;
+  "role": {
+  "id": string;
+  "name": string;
+};
+  "project_access": TeamMemberProjectAccessData;
   "joined_at": string | null;
+}
+
+export interface TeamMemberProjectAccessData {
+  "scope": ProjectAccessScope;
+  "projects": {
+  "id": string;
+  "name": string;
+}[];
+}
+
+export interface TeamRoleData {
+  "id": string;
+  "name": string;
+  "system_key": BuiltInTeamRole | null;
+  "permissions": RbacPermission[];
+  "assignable": boolean;
 }
 
 export type TeamType = "personal" | "business";
@@ -411,26 +493,24 @@ export interface UpdateProjectData {
   "default_route_id"?: string | null;
 }
 
-export interface UpdateProjectMembersData {
-  "team_member_ids": string[];
-}
-
 export interface UpdateRouteData {
   "name"?: string | null;
-  "settings"?: UpdateRouteSettingsData | unknown;
-  "inbound_settings"?: UpdateRouteInboundSettingsData | unknown;
+  "settings"?: UpdateRouteSettingsData | null;
+  "inbound_settings"?: UpdateRouteInboundSettingsData | null;
 }
 
 export interface UpdateRouteInboundSettingsData {
   "inbound_domain"?: string | null;
   "inbound_spam_threshold"?: number | null;
-  "attachment_delivery"?: AttachmentDelivery | unknown;
+  "attachment_delivery"?: AttachmentDelivery | null;
 }
 
 export interface UpdateRouteSettingsData {
   "track_opens"?: boolean | null;
   "track_clicks"?: boolean | null;
-  "disable_plaintext_generation"?: boolean | null;
+  "generate_plaintext_fallback"?: boolean | null;
+  "suppress_auto_responders"?: boolean | null;
+  "tls"?: TlsPolicy | null;
   "disable_hosted_unsubscribe"?: boolean | null;
   "redact_email_content"?: boolean | null;
 }
@@ -439,22 +519,21 @@ export interface UpdateTeamData {
   "name"?: string | null;
 }
 
+export interface UpdateTeamMemberAssignmentData {
+  "role_id": string;
+  "project_access": {
+  "scope": ProjectAccessScope;
+  "project_ids"?: string[];
+};
+}
+
 export interface UpdateWebhookData {
   "name"?: string;
   "url"?: string;
+  "events"?: WebhookEvent[];
   "enabled"?: boolean;
   "include_machine_events"?: boolean;
-  "events"?: WebhookEvent[];
 }
-
-export interface UserData {
-  "id": string;
-  "name": string;
-  "email": string;
-  "avatar": string | null;
-}
-
-export type VolumeTier = 300 | 10000 | 50000 | 125000 | 300000 | 500000 | 750000 | 1000000 | 1500000;
 
 export interface WebhookData {
   "id": string;
@@ -500,7 +579,7 @@ export interface WebhookDeliveryListData {
 
 export type WebhookDeliveryStatus = "pending" | "success" | "failed" | "client_error" | "server_error" | "timeout";
 
-export type WebhookEvent = "message.created" | "message.sent" | "message.delivered" | "message.auto_replied" | "message.hard_bounced" | "message.soft_bounced" | "message.spam_complaint" | "message.failed" | "message.suppressed" | "message.unsubscribed" | "message.opened" | "message.clicked" | "message.inbound" | "message.policy_rejected" | "webhook.test";
+export type WebhookEvent = "message.created" | "message.sent" | "message.delivered" | "message.auto_replied" | "message.hard_bounced" | "message.soft_bounced" | "message.spam_complaint" | "message.failed" | "message.suppressed" | "message.unsubscribed" | "message.opened" | "message.clicked" | "message.inbound" | "message.policy_rejected" | "suppression.added" | "suppression.removed" | "webhook.test";
 
 export interface WebhookListData {
   "id": string;
@@ -543,6 +622,11 @@ export type DomainDestroyResponse = {
 };
 export type DomainVerifyDnsRecordsResponse = {
   "message": string;
+  "recommended_failed_records": {
+  "id": string;
+  "type": string;
+  "name": string;
+}[];
 };
 export type DomainVerifySpecificDnsRecordResponse = {
   "message": "DNS record verified successfully.";
@@ -558,13 +642,16 @@ export type BlockedFileTypesResponse = {
 };
 export type MessageIndexResponse = {
   "data": MessageListData[];
+  "links": string[];
+  "meta": {
   "path": string | null;
   "per_page": number;
   "next_cursor": string | null;
-  "next_page_url": string | null;
+  "next_cursor_url": string | null;
   "prev_cursor": string | null;
-  "prev_page_url": string | null;
-} | MessageListData[];
+  "prev_cursor_url": string | null;
+};
+};
 export type MessageShowResponse = MessageData;
 export type MessageEventsResponse = {
   "data": MessageEventData[];
@@ -602,18 +689,7 @@ export type ProjectDestroyResponse = {
 export type ProjectRotateTokenResponse = {
   "data": ProjectData;
   "new_token": string;
-  "message": "Project API token rotated successfully. Please update your integrations.";
-};
-export type ProjectUpdateMembersRequest = UpdateProjectMembersData;
-export type ProjectUpdateMembersResponse = {
-  "data": ProjectData;
-  "message": "Project members updated successfully.";
-};
-export type ProjectAddMemberResponse = {
-  "message": "Team member added to project successfully.";
-};
-export type ProjectRemoveMemberResponse = {
-  "message": "Team member removed from project successfully.";
+  "message": "API token rotated successfully. Please update your integrations.";
 };
 export type RouteIndexResponse = {
   "data": RouteListData[];
@@ -663,7 +739,10 @@ export type SuppressionStoreResponse = {
 };
 };
 export type SuppressionDestroyResponse = {
-  "message": "Email removed from suppression list successfully.";
+  "success": boolean;
+  "status": "removed";
+  "message": string;
+  "confidence"?: number;
 };
 export type TeamShowResponse = TeamData;
 export type TeamUpdateRequest = UpdateTeamData;
@@ -672,6 +751,9 @@ export type TeamUpdateResponse = {
   "message": "Team settings updated successfully.";
 };
 export type TeamUsageResponse = TeamUsageDetailData;
+export type TeamRolesResponse = {
+  "data": TeamRoleData[];
+};
 export type TeamMembersResponse = {
   "data": TeamMemberData[];
   "path": string | null;
@@ -681,6 +763,9 @@ export type TeamMembersResponse = {
   "prev_cursor": string | null;
   "prev_page_url": string | null;
 };
+export type TeamMembersShowResponse = TeamMemberData;
+export type TeamMembersAssignmentUpdateRequest = UpdateTeamMemberAssignmentData;
+export type TeamMembersAssignmentUpdateResponse = TeamMemberData;
 export type WebhookIndexResponse = {
   "data": WebhookListData[];
   "path": string | null;

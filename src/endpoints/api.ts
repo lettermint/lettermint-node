@@ -95,31 +95,6 @@ export class ProjectsEndpoint extends Endpoint {
     return this.httpClient.post(`/projects/${this.pathSegment(projectId)}/rotate-token`);
   }
 
-  public updateMembers(
-    projectId: string,
-    payload: Types.ProjectUpdateMembersRequest
-  ): Promise<Types.ProjectUpdateMembersResponse> {
-    return this.httpClient.put(`/projects/${this.pathSegment(projectId)}/members`, payload);
-  }
-
-  public addMember(
-    projectId: string,
-    teamMemberId: string
-  ): Promise<Types.ProjectAddMemberResponse> {
-    return this.httpClient.post(
-      `/projects/${this.pathSegment(projectId)}/members/${this.pathSegment(teamMemberId)}`
-    );
-  }
-
-  public removeMember(
-    projectId: string,
-    teamMemberId: string
-  ): Promise<Types.ProjectRemoveMemberResponse> {
-    return this.httpClient.delete(
-      `/projects/${this.pathSegment(projectId)}/members/${this.pathSegment(teamMemberId)}`
-    );
-  }
-
   public routes(projectId: string, params?: QueryParams): Promise<Types.RouteIndexResponse> {
     return this.httpClient.get(`/projects/${this.pathSegment(projectId)}/routes`, { params });
   }
@@ -186,8 +161,23 @@ export class TeamEndpoint extends Endpoint {
     return this.httpClient.get('/team/usage', { params });
   }
 
+  public roles(): Promise<Types.TeamRolesResponse> {
+    return this.httpClient.get('/team/roles');
+  }
+
   public members(params?: QueryParams): Promise<Types.TeamMembersResponse> {
     return this.httpClient.get('/team/members', { params });
+  }
+
+  public member(userId: string): Promise<Types.TeamMembersShowResponse> {
+    return this.httpClient.get(`/team/members/${this.pathSegment(userId)}`);
+  }
+
+  public updateMemberAssignment(
+    userId: string,
+    payload: Types.TeamMembersAssignmentUpdateRequest
+  ): Promise<Types.TeamMembersAssignmentUpdateResponse> {
+    return this.httpClient.put(`/team/members/${this.pathSegment(userId)}/assignment`, payload);
   }
 }
 
