@@ -1,3 +1,10 @@
+# [2.2.0](https://github.com/lettermint/lettermint-node/compare/v2.1.0...v2.2.0) (2026-08-13)
+
+
+### Features
+
+* **email:** add TLS settings, attachment MIME types, and batch idempotency ([#19](https://github.com/lettermint/lettermint-node/issues/19)) ([3a6cacf](https://github.com/lettermint/lettermint-node/commit/3a6cacfb7b73e0467565530318725900fbe1fff3)), closes [#18](https://github.com/lettermint/lettermint-node/issues/18)
+
 # [2.1.0](https://github.com/lettermint/lettermint-node/compare/v2.0.0...v2.1.0) (2026-07-07)
 
 
