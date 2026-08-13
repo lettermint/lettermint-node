@@ -150,7 +150,10 @@ describe('EmailEndpoint', () => {
   });
 
   it('should set custom headers', () => {
-    const headers = { 'X-Custom': 'Value', 'X-Another': 'Another Value' };
+    const headers = {
+      'Message-ID': '<ticket-123@example.com>',
+      'X-LM-Preserve-Message-ID': 'true',
+    };
     const result = emailEndpoint.headers(headers);
 
     expect(result).toBe(emailEndpoint);
@@ -204,6 +207,47 @@ describe('EmailEndpoint', () => {
             },
           ],
         }),
+        undefined
+      );
+    });
+  });
+
+  it('should add attachments with content_id and content_type', () => {
+    const result = emailEndpoint.attach('invite.ics', 'base64calendar', 'invite', 'text/calendar');
+
+    expect(result).toBe(emailEndpoint);
+
+    return emailEndpoint.send().then(() => {
+      expect(client.post).toHaveBeenCalledWith(
+        '/send',
+        expect.objectContaining({
+          attachments: [
+            {
+              filename: 'invite.ics',
+              content: 'base64calendar',
+              content_id: 'invite',
+              content_type: 'text/calendar',
+            },
+          ],
+        }),
+        undefined
+      );
+    });
+  });
+
+  it('should set per-email settings', () => {
+    const settings = {
+      track_opens: false,
+      track_clicks: true,
+      tls: 'enforced' as const,
+    };
+
+    expect(emailEndpoint.settings(settings)).toBe(emailEndpoint);
+
+    return emailEndpoint.send().then(() => {
+      expect(client.post).toHaveBeenCalledWith(
+        '/send',
+        expect.objectContaining({ settings }),
         undefined
       );
     });
@@ -399,5 +443,23 @@ describe('EmailEndpoint', () => {
         'Idempotency-Key': 'unique-id-123',
       },
     });
+  });
+
+  it('should set and reset the batch idempotency key', async () => {
+    const payload = [
+      {
+        from: 'sender@example.com',
+        to: ['recipient@example.com'],
+        subject: 'Test Subject',
+      },
+    ];
+
+    await emailEndpoint.idempotencyKey('batch-key').sendBatch(payload);
+    await emailEndpoint.sendBatch(payload);
+
+    expect(client.post).toHaveBeenNthCalledWith(1, '/send/batch', payload, {
+      headers: { 'Idempotency-Key': 'batch-key' },
+    });
+    expect(client.post).toHaveBeenNthCalledWith(2, '/send/batch', payload, undefined);
   });
 });
