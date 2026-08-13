@@ -175,9 +175,15 @@ export class EmailEndpoint extends Endpoint {
    * @param filename The attachment filename
    * @param content The base64-encoded file content
    * @param content_id The Content-ID for inline attachments (optional)
+   * @param content_type The MIME type for the attachment (optional)
    * @returns The current instance for chaining
    */
-  public attach(filename: string, content: string, content_id?: string): this {
+  public attach(
+    filename: string,
+    content: string,
+    content_id?: string,
+    content_type?: string
+  ): this {
     if (!this.payload.attachments) {
       this.payload.attachments = [];
     }
@@ -186,8 +192,20 @@ export class EmailEndpoint extends Endpoint {
       filename,
       content,
       ...(content_id && { content_id }),
+      ...(content_type && { content_type }),
     });
 
+    return this;
+  }
+
+  /**
+   * Set per-email delivery and tracking settings
+   *
+   * @param settings Settings that override the selected route for this email
+   * @returns The current instance for chaining
+   */
+  public settings(settings: NonNullable<EmailPayload['settings']>): this {
+    this.payload.settings = settings;
     return this;
   }
 
@@ -236,7 +254,15 @@ export class EmailEndpoint extends Endpoint {
   }
 
   public async sendBatch(payload: SendBatchMailRequest): Promise<SendBatchEmailResponse> {
-    return this.httpClient.post<SendBatchEmailResponse>('/send/batch', payload);
+    const config = this.idempotencyKeyValue
+      ? { headers: { 'Idempotency-Key': this.idempotencyKeyValue } }
+      : undefined;
+
+    try {
+      return await this.httpClient.post<SendBatchEmailResponse>('/send/batch', payload, config);
+    } finally {
+      this.reset();
+    }
   }
 
   public async ping(): Promise<string> {
