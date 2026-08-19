@@ -15,6 +15,10 @@ export interface SendMailRequest {
   "headers"?: Record<string, string>;
   "metadata"?: Record<string, string>;
   "tag"?: string | null;
+  "tags"?: {
+  "name": string;
+  "value": string;
+}[];
   "settings"?: {
   "track_opens"?: boolean;
   "track_clicks"?: boolean;
@@ -41,6 +45,10 @@ export type SendBatchMailRequest = {
   "headers"?: Record<string, string>;
   "metadata"?: Record<string, string>;
   "tag"?: string | null;
+  "tags"?: {
+  "name": string;
+  "value": string;
+}[];
   "settings"?: {
   "track_opens"?: boolean;
   "track_clicks"?: boolean;
@@ -134,6 +142,10 @@ export interface MessageData {
   "status": MessageStatus;
   "status_changed_at": string | null;
   "tag": string | null;
+  "tags": {
+  "name": string;
+  "value": string;
+}[];
   "from_email": string;
   "from_name": string | null;
   "reply_to": string[] | null;
@@ -152,6 +164,11 @@ export interface MessageData {
 export interface MessageEventData {
   "message_id": string;
   "event": MessageEventType;
+  "tag": string | null;
+  "tags": {
+  "name": string;
+  "value": string;
+}[];
   "metadata": Record<string, unknown> | null;
   "timestamp": string;
 }
@@ -171,6 +188,10 @@ export interface MessageListData {
   "bcc": MessageRecipientData[] | null;
   "reply_to": string[] | null;
   "tag": string | null;
+  "tags": {
+  "name": string;
+  "value": string;
+}[];
   "status_changed_at": string | null;
   "created_at": string;
 }
@@ -246,6 +267,7 @@ export interface RouteData {
   "track_clicks"?: boolean;
   "generate_plaintext_fallback"?: boolean;
   "suppress_auto_responders"?: boolean;
+  "suppress_disposable_recipients"?: boolean;
   "tls"?: TlsPolicy;
   "redact_email_content"?: boolean;
   "attachment_delivery"?: {
@@ -510,6 +532,7 @@ export interface UpdateRouteSettingsData {
   "track_clicks"?: boolean | null;
   "generate_plaintext_fallback"?: boolean | null;
   "suppress_auto_responders"?: boolean | null;
+  "suppress_disposable_recipients"?: boolean | null;
   "tls"?: TlsPolicy | null;
   "disable_hosted_unsubscribe"?: boolean | null;
   "redact_email_content"?: boolean | null;
@@ -655,12 +678,15 @@ export type MessageIndexResponse = {
 export type MessageShowResponse = MessageData;
 export type MessageEventsResponse = {
   "data": MessageEventData[];
+  "links": string[];
+  "meta": {
   "path": string | null;
   "per_page": number;
   "next_cursor": string | null;
-  "next_page_url": string | null;
+  "next_cursor_url": string | null;
   "prev_cursor": string | null;
-  "prev_page_url": string | null;
+  "prev_cursor_url": string | null;
+};
 };
 export type ProjectIndexResponse = {
   "data": ProjectListData[];

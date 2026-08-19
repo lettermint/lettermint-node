@@ -236,6 +236,17 @@ export class EmailEndpoint extends Endpoint {
   }
 
   /**
+   * Set reusable name-value tags for the email.
+   *
+   * @param tags The tags to attach to the email
+   * @returns The current instance for chaining
+   */
+  public tags(tags: NonNullable<EmailPayload['tags']>): this {
+    this.payload.tags = tags;
+    return this;
+  }
+
+  /**
    * Send the composed email using the current payload
    *
    * @returns Promise resolving to the API response

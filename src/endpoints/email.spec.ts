@@ -303,6 +303,21 @@ describe('EmailEndpoint', () => {
     });
   });
 
+  it('should set reusable tags', () => {
+    const tags = [{ name: 'campaign', value: 'welcome-v2' }];
+    const result = emailEndpoint.tags(tags);
+
+    expect(result).toBe(emailEndpoint);
+
+    return emailEndpoint.send().then(() => {
+      expect(client.post).toHaveBeenCalledWith(
+        '/send',
+        expect.objectContaining({ tags }),
+        undefined
+      );
+    });
+  });
+
   it('should send the email with all options', async () => {
     // Set up a complete email
     emailEndpoint
