@@ -1,3 +1,10 @@
+# [2.3.0](https://github.com/lettermint/lettermint-node/compare/v2.2.0...v2.3.0) (2026-08-19)
+
+
+### Features
+
+* **api:** support message tags and disposable email suppression ([#21](https://github.com/lettermint/lettermint-node/issues/21)) ([0dae037](https://github.com/lettermint/lettermint-node/commit/0dae037c56cfe4d9d53720e51cbecbfd2eb56e20))
+
 # [2.2.0](https://github.com/lettermint/lettermint-node/compare/v2.1.0...v2.2.0) (2026-08-13)
 
 
