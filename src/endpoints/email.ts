@@ -93,6 +93,12 @@ export class EmailEndpoint extends Endpoint {
     return this;
   }
 
+  /** Set the requested delivery time for the email. */
+  public scheduledAt(scheduledAt: string): this {
+    this.payload.scheduled_at = scheduledAt;
+    return this;
+  }
+
   /**
    * Set the HTML body of the email
    *

@@ -136,6 +136,26 @@ describe('public SDK surface', () => {
       expect.objectContaining({ method: 'PUT', body: JSON.stringify(assignment) })
     );
   });
+
+  it('reschedules and cancels scheduled messages', async () => {
+    const api = Lettermint.api('api-token');
+    await api.messages.reschedule('message/id', { scheduled_at: '2026-08-27T09:00:00Z' });
+    await api.messages.cancel('message/id');
+
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      1,
+      'https://api.lettermint.co/v1/messages/message%2Fid',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ scheduled_at: '2026-08-27T09:00:00Z' }),
+      })
+    );
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      2,
+      'https://api.lettermint.co/v1/messages/message%2Fid/cancel',
+      expect.objectContaining({ method: 'POST' })
+    );
+  });
 });
 
 describe('api endpoint coverage', () => {
@@ -151,6 +171,8 @@ describe('api endpoint coverage', () => {
     'v1.blockedFileTypes': 'blockedFileTypes',
     'message.index': 'messages.list',
     'message.show': 'messages.retrieve',
+    rescheduleMessage: 'messages.reschedule',
+    cancelScheduledMessage: 'messages.cancel',
     'message.events': 'messages.events',
     'message.source': 'messages.source',
     'message.html': 'messages.html',
@@ -208,7 +230,7 @@ describe('api endpoint coverage', () => {
 
 describe('generated api types', () => {
   it('matches current Team API schema additions', () => {
-    const messageEvent: Types.MessageEventType = 'auto_replied';
+    const messageEvent: Types.MessageEventType = 'scheduled';
     const webhookEvent: Types.WebhookEvent = 'message.auto_replied';
     const builtInRole: Types.BuiltInTeamRole = 'admin';
     const suppression: Types.StoreSuppressionData = {
@@ -279,6 +301,7 @@ describe('generated api types', () => {
       created_at: '2026-08-12T00:00:00Z',
     };
     const spamScore: Types.MessageListData['spam_score'] = 2.5;
+    const scheduledAt: Types.SendMailRequest['scheduled_at'] = '2026-08-27T09:00:00Z';
 
     expect({
       messageEvent,
@@ -295,6 +318,7 @@ describe('generated api types', () => {
       domain,
       sourceMessage,
       spamScore,
+      scheduledAt,
     }).toBeDefined();
   });
 });
