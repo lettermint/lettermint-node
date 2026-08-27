@@ -1,3 +1,10 @@
+# [2.4.0](https://github.com/lettermint/lettermint-node/compare/v2.3.0...v2.4.0) (2026-08-27)
+
+
+### Features
+
+* **api:** support scheduled message delivery ([#22](https://github.com/lettermint/lettermint-node/issues/22)) ([c0dd2bc](https://github.com/lettermint/lettermint-node/commit/c0dd2bceeaab05a9a3fc12fdf9f86e6467dd8888))
+
 # [2.3.0](https://github.com/lettermint/lettermint-node/compare/v2.2.0...v2.3.0) (2026-08-19)
 
 
