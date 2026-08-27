@@ -246,6 +246,19 @@ export class LettermintClient {
     return response.json();
   }
 
+  /** Make a PATCH request to the API. */
+  public async patch<T>(path: string, data?: unknown, config?: RequestConfig): Promise<T> {
+    const url = this.buildUrl(path, config?.params);
+    const headers = this.buildHeaders(config?.headers);
+    const response = await this.fetchWithTimeout(url, {
+      method: 'PATCH',
+      headers,
+      body: data ? JSON.stringify(data) : undefined,
+    });
+
+    return response.json();
+  }
+
   /**
    * Make a DELETE request to the API
    *
