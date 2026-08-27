@@ -1,3 +1,10 @@
+## [2.4.1](https://github.com/lettermint/lettermint-node/compare/v2.4.0...v2.4.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* expose ESM build via package.json exports ([1eae85e](https://github.com/lettermint/lettermint-node/commit/1eae85efbe98585eea785abcde2d6b37fdf3117b)), closes [#23](https://github.com/lettermint/lettermint-node/issues/23)
+
 # [2.4.0](https://github.com/lettermint/lettermint-node/compare/v2.3.0...v2.4.0) (2026-08-27)
 
 
