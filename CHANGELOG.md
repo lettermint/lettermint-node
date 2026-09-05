@@ -1,3 +1,10 @@
+# [2.5.0](https://github.com/lettermint/lettermint-node/compare/v2.4.1...v2.5.0) (2026-09-05)
+
+
+### Features
+
+* **api:** support quarantined inbound message processing ([0eac95c](https://github.com/lettermint/lettermint-node/commit/0eac95c6e1adfc059f6010f429a0aae665aa907f))
+
 ## [2.4.1](https://github.com/lettermint/lettermint-node/compare/v2.4.0...v2.4.1) (2026-08-27)
 
 
