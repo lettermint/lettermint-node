@@ -141,6 +141,7 @@ describe('public SDK surface', () => {
     const api = Lettermint.api('api-token');
     await api.messages.reschedule('message/id', { scheduled_at: '2026-08-27T09:00:00Z' });
     await api.messages.cancel('message/id');
+    await api.messages.process('message/id');
 
     expect(mockFetch).toHaveBeenNthCalledWith(
       1,
@@ -153,6 +154,11 @@ describe('public SDK surface', () => {
     expect(mockFetch).toHaveBeenNthCalledWith(
       2,
       'https://api.lettermint.co/v1/messages/message%2Fid/cancel',
+      expect.objectContaining({ method: 'POST' })
+    );
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      3,
+      'https://api.lettermint.co/v1/messages/message%2Fid/process',
       expect.objectContaining({ method: 'POST' })
     );
   });
@@ -173,6 +179,7 @@ describe('api endpoint coverage', () => {
     'message.show': 'messages.retrieve',
     rescheduleMessage: 'messages.reschedule',
     cancelScheduledMessage: 'messages.cancel',
+    processInboundMessage: 'messages.process',
     'message.events': 'messages.events',
     'message.source': 'messages.source',
     'message.html': 'messages.html',
