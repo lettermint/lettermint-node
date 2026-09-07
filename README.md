@@ -154,24 +154,6 @@ Methods for sending emails:
 
 The full API client exposes `domains`, `messages`, `projects`, `routes`, `stats`, `suppressions`, `team`, and `webhooks`. Request and response types are exported from the package.
 
-## Releases
-
-Publish a GitHub release with a tag such as `v2.2.0` or `2.2.0` to publish the
-package to npm. A push to `main` does not create a release.
-
-The release workflow updates `package.json` and `package-lock.json` from the tag
-before it runs the checks and builds the package. Stable releases use the npm
-`latest` tag. Prereleases use `next`.
-
-After npm publication, the workflow sends the Discord notification if
-`DISCORD_RELEASE_WEBHOOK_URL` is set. For a stable release, it also opens a pull
-request to update the changelog and package version on the default branch.
-
-The npm package must permit trusted publication from `release.yaml` in this
-repository. See the [npm trusted publisher instructions](https://docs.npmjs.com/trusted-publishers/).
-GitHub Actions must have permission to create pull requests for the release
-update pull request.
-
 ## License
 
 MIT
