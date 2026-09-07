@@ -1,0 +1,47 @@
+name: Update Changelog and Version
+
+on:
+  workflow_call:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    if: github.event_name == 'release' && !github.event.release.prerelease && !contains(github.event.release.tag_name, '-')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Update package version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: npm version "${RELEASE_TAG#v}" --no-git-tag-version --allow-same-version --ignore-scripts
+
+      - name: Update changelog from release notes
+        uses: stefanzweifel/changelog-updater-action@v1
+        with:
+          latest-version: ${{ github.event.release.tag_name }}
+          release-notes: ${{ github.event.release.body }}
+
+      - name: Open release update pull request
+        uses: peter-evans/create-pull-request@v8
+        with:
+          branch: automation/update-changelog
+          commit-message: Update changelog and package version
+          title: Update changelog and package version
+          body: Update CHANGELOG.md, package.json, and package-lock.json for the published release.
+          add-paths: |
+            CHANGELOG.md
+            package.json
+            package-lock.json

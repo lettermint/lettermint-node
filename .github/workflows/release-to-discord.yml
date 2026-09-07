@@ -1,17 +1,31 @@
+name: Release to Discord
+
 on:
-  release:
-    types: [ published ]
-  workflow_dispatch:
+  workflow_call:
+    secrets:
+      DISCORD_RELEASE_WEBHOOK_URL:
+        required: false
+
+permissions:
+  contents: read
 
 jobs:
-  github-releases-to-discord:
+  notify:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Discord Release Webhook
+      - name: Check webhook configuration
+        id: webhook
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}
+        run: |
+          if [ -n "$WEBHOOK_URL" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Send release notification
+        if: steps.webhook.outputs.configured == 'true'
         uses: lettermint/action-discord-releases@v1.0.1
         with:
           color: '215732'
           webhook_url: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}
-          content: 'A new release for the Lettermint NodeJS SDK is now available! ||@NodeJS||'
+          content: 'A new release for the Lettermint Node.js SDK is now available! @NodeJS'
