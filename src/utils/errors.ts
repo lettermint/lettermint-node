@@ -32,3 +32,5 @@ export class ClientError extends HttpRequestError {
     super(message, 400, responseBody);
   }
 }
+
+export class WebhookVerificationError extends LettermintError {}

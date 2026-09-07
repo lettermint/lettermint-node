@@ -110,6 +110,42 @@ await email.ping();
 await api.ping();
 ```
 
+### Webhook Verification
+
+Use `Webhook` to verify incoming webhooks. Use the webhook signing secret, not an API token.
+Pass the raw request body as a string or `Buffer`. Do not parse or change the body before verification.
+
+```typescript
+import { Webhook, WebhookVerificationError } from 'lettermint';
+
+const webhook = new Webhook(process.env.LETTERMINT_WEBHOOK_SECRET!);
+
+try {
+  const payload = webhook.verifyHeaders(request.headers, rawBody);
+  // Process the verified payload here.
+} catch (error) {
+  if (error instanceof WebhookVerificationError) {
+    // Reject the request. Do not process its payload.
+  } else {
+    throw error;
+  }
+}
+```
+
+`verifyHeaders(headers, rawBody)` accepts Node.js request headers. It requires
+`X-Lettermint-Signature` and `X-Lettermint-Delivery`. Header names are case-insensitive.
+The delivery timestamp must match the timestamp in the signature.
+
+You can also call `webhook.verify(rawBody, signatureHeader, deliveryTimestamp?)` directly.
+Both methods check HMAC-SHA256 signatures with a constant-time comparison and return
+the decoded JSON as `unknown`. Check the payload structure before use.
+
+The default timestamp tolerance is 300 seconds in either direction. To change it,
+use `new Webhook(secret, { tolerance: 60 })`. The tolerance must be a non-negative
+integer in seconds. A value of `0` only accepts the current second; it does not
+disable the timestamp check. A valid signature does not prevent repeat delivery
+within this period. Track processed events if you must prevent duplicate work.
+
 ## API Reference
 
 ### Lettermint Class
