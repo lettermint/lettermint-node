@@ -5,3 +5,4 @@ export * from './endpoints/api';
 export * from './types';
 export * from './utils/errors';
 export * from './lettermint';
+export * from './webhook';
