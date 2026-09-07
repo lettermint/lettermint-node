@@ -1,3 +1,10 @@
+# [2.6.0](https://github.com/lettermint/lettermint-node/compare/v2.5.0...v2.6.0) (2026-09-07)
+
+
+### Features
+
+* add built-in webhook signature verification ([f256598](https://github.com/lettermint/lettermint-node/commit/f2565988da01c4c53873463de8581957667d0847))
+
 # [2.5.0](https://github.com/lettermint/lettermint-node/compare/v2.4.1...v2.5.0) (2026-09-05)
 
 
