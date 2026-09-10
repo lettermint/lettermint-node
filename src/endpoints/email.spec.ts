@@ -318,6 +318,28 @@ describe('EmailEndpoint', () => {
     });
   });
 
+  it.each([
+    [
+      [
+        { name: 'duplicate', value: 'one' },
+        { name: 'duplicate', value: 'two' },
+      ],
+    ],
+    [[{ name: '__LETTERMint_internal', value: 'one' }]],
+    [[{ name: 'invalid name', value: 'one' }]],
+    [[{ name: 'valid', value: 'invalid value' }]],
+  ])('should reject invalid reusable tags', (tags) => {
+    expect(() => emailEndpoint.tags(tags)).toThrow(TypeError);
+  });
+
+  it('should count the legacy tag in the message tag limit', () => {
+    const tags = Array.from({ length: 20 }, (_, index) => ({
+      name: `tag_${index}`,
+      value: 'value',
+    }));
+    expect(() => emailEndpoint.tag('legacy').tags(tags)).toThrow(TypeError);
+  });
+
   it('should send the email with all options', async () => {
     // Set up a complete email
     emailEndpoint
