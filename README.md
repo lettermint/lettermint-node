@@ -61,8 +61,15 @@ const response = await email
     foo: 'bar',
   })
   .tag('campaign-123')
+  .tags([
+    { name: 'campaign', value: 'welcome' },
+    { name: 'customer', value: 'new' },
+  ])
   .send();
 ```
+
+`tag()` remains available for the legacy single tag. `tags()` accepts up to 20
+case-sensitive name/value tags, or 19 when `tag()` is also set.
 
 The legacy constructor still works for sending-only usage:
 

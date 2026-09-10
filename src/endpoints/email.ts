@@ -237,6 +237,9 @@ export class EmailEndpoint extends Endpoint {
    * @returns The current instance for chaining
    */
   public tag(tag: string): this {
+    if ((this.payload.tags?.length ?? 0) >= 20) {
+      throw new TypeError('A legacy tag and no more than 19 message tags are permitted');
+    }
     this.payload.tag = tag;
     return this;
   }
@@ -248,6 +251,30 @@ export class EmailEndpoint extends Endpoint {
    * @returns The current instance for chaining
    */
   public tags(tags: NonNullable<EmailPayload['tags']>): this {
+    const maximum = this.payload.tag == null ? 20 : 19;
+    if (tags.length > maximum) {
+      throw new TypeError(
+        `No more than ${maximum} message tags are permitted with the current legacy tag`
+      );
+    }
+
+    const names = new Set<string>();
+    for (const tag of tags) {
+      if (tag.name.length < 1 || tag.name.length > 32 || !/^[A-Za-z0-9_-]+$/.test(tag.name)) {
+        throw new TypeError('Message tag names must match ^[A-Za-z0-9_-]{1,32}$');
+      }
+      if (tag.name.toLowerCase().startsWith('__lettermint')) {
+        throw new TypeError('Message tag names must not start with __lettermint');
+      }
+      if (tag.value.length < 1 || tag.value.length > 64 || !/^[A-Za-z0-9_-]+$/.test(tag.value)) {
+        throw new TypeError('Message tag values must match ^[A-Za-z0-9_-]{1,64}$');
+      }
+      if (names.has(tag.name)) {
+        throw new TypeError(`Duplicate message tag name: ${tag.name}`);
+      }
+      names.add(tag.name);
+    }
+
     this.payload.tags = tags;
     return this;
   }
