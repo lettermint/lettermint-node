@@ -1,19 +1,26 @@
 # [2.6.0](https://github.com/lettermint/lettermint-node/compare/v2.5.0...v2.6.0) (2026-09-07)
 
-
 ### Features
 
 * add built-in webhook signature verification ([f256598](https://github.com/lettermint/lettermint-node/commit/f2565988da01c4c53873463de8581957667d0847))
 
 # [2.5.0](https://github.com/lettermint/lettermint-node/compare/v2.4.1...v2.5.0) (2026-09-05)
 
-
 ### Features
 
 * **api:** support quarantined inbound message processing ([0eac95c](https://github.com/lettermint/lettermint-node/commit/0eac95c6e1adfc059f6010f429a0aae665aa907f))
 
-## [2.4.1](https://github.com/lettermint/lettermint-node/compare/v2.4.0...v2.4.1) (2026-08-27)
+## [v2.7.0](https://github.com/lettermint/lettermint-node/compare/v2.4.1...v2.7.0) - 2026-09-14
 
+### What's Changed
+
+* ci: publish Node SDK from GitHub releases by @bjarn in https://github.com/lettermint/lettermint-node/pull/27
+* feat: add typed message tags by @bjarn in https://github.com/lettermint/lettermint-node/pull/28
+* chore: add all team as code owners by @bjarn in https://github.com/lettermint/lettermint-node/pull/29
+
+**Full Changelog**: https://github.com/lettermint/lettermint-node/compare/v2.6.0...v2.7.0
+
+## [2.4.1](https://github.com/lettermint/lettermint-node/compare/v2.4.0...v2.4.1) (2026-08-27)
 
 ### Bug Fixes
 
@@ -21,13 +28,11 @@
 
 # [2.4.0](https://github.com/lettermint/lettermint-node/compare/v2.3.0...v2.4.0) (2026-08-27)
 
-
 ### Features
 
 * **api:** support scheduled message delivery ([#22](https://github.com/lettermint/lettermint-node/issues/22)) ([c0dd2bc](https://github.com/lettermint/lettermint-node/commit/c0dd2bceeaab05a9a3fc12fdf9f86e6467dd8888))
 
 # [2.3.0](https://github.com/lettermint/lettermint-node/compare/v2.2.0...v2.3.0) (2026-08-19)
-
 
 ### Features
 
@@ -35,13 +40,11 @@
 
 # [2.2.0](https://github.com/lettermint/lettermint-node/compare/v2.1.0...v2.2.0) (2026-08-13)
 
-
 ### Features
 
 * **email:** add TLS settings, attachment MIME types, and batch idempotency ([#19](https://github.com/lettermint/lettermint-node/issues/19)) ([3a6cacf](https://github.com/lettermint/lettermint-node/commit/3a6cacfb7b73e0467565530318725900fbe1fff3)), closes [#18](https://github.com/lettermint/lettermint-node/issues/18)
 
 # [2.1.0](https://github.com/lettermint/lettermint-node/compare/v2.0.0...v2.1.0) (2026-07-07)
-
 
 ### Features
 
@@ -49,19 +52,16 @@
 
 # [2.0.0](https://github.com/lettermint/lettermint-node/compare/v1.5.1...v2.0.0) (2026-05-11)
 
-
 ### Features
 
 * implement Team API API endpoints ([#14](https://github.com/lettermint/lettermint-node/issues/14)) ([3ec0837](https://github.com/lettermint/lettermint-node/commit/3ec08379503c12789af7946ebe488435c82960a3))
 * release SDK v2 ([2d37374](https://github.com/lettermint/lettermint-node/commit/2d37374dc26b051d7a85cf5d767daa85a2ae710e))
-
 
 ### BREAKING CHANGES
 
 * SDK v2 changes client structure, response types, and token configuration.
 
 ## [1.5.1](https://github.com/lettermint/lettermint-node/compare/v1.5.0...v1.5.1) (2026-02-20)
-
 
 ### Bug Fixes
 
@@ -70,13 +70,11 @@
 
 # [1.5.0](https://github.com/lettermint/lettermint-node/compare/v1.4.0...v1.5.0) (2025-12-23)
 
-
 ### Features
 
 * include SDK version and Node.js version in User-Agent header ([2c069a7](https://github.com/lettermint/lettermint-node/commit/2c069a70b96703e5e1f5c1383343bd992f2a6f95))
 
 # [1.4.0](https://github.com/lettermint/lettermint-node/compare/v1.3.0...v1.4.0) (2025-10-07)
-
 
 ### Features
 
@@ -84,13 +82,11 @@
 
 # [1.3.0](https://github.com/lettermint/lettermint-node/compare/v1.2.1...v1.3.0) (2025-08-24)
 
-
 ### Features
 
 * add support for tagging emails ([5271cfa](https://github.com/lettermint/lettermint-node/commit/5271cfaba48c0e42ed84ea16cd85d60e5ccf0c11))
 
 ## [1.2.1](https://github.com/lettermint/lettermint-node/compare/v1.2.0...v1.2.1) (2025-08-23)
-
 
 ### Bug Fixes
 
@@ -98,18 +94,15 @@
 
 # [1.2.0](https://github.com/lettermint/lettermint-node/compare/v1.1.0...v1.2.0) (2025-08-23)
 
-
 ### Features
 
 * add support for metadata in email requests ([4906c0b](https://github.com/lettermint/lettermint-node/commit/4906c0b3e85feec79f5baa555790bb8794c22f46))
 
 # [1.1.0](https://github.com/lettermint/lettermint-node/compare/v1.0.1...v1.1.0) (2025-06-28)
 
-
 ### Bug Fixes
 
 * update test cases to handle optional second argument in `send` calls ([013855b](https://github.com/lettermint/lettermint-node/commit/013855b0ced2a41d8cdada8d515c899ee0bc091d))
-
 
 ### Features
 
@@ -117,13 +110,11 @@
 
 ## [1.0.1](https://github.com/lettermint/lettermint-node/compare/v1.0.0...v1.0.1) (2025-05-25)
 
-
 ### Bug Fixes
 
 * change content param for consistency ([a347c2d](https://github.com/lettermint/lettermint-node/commit/a347c2d9b66d447b76e46e79769d88fcbabd776e))
 
 # 1.0.0 (2025-05-24)
-
 
 ### Features
 
