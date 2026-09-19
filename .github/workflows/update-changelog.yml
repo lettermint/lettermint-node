@@ -2,6 +2,9 @@ name: Update Changelog and Version
 
 on:
   workflow_call:
+    secrets:
+      release_app_private_key:
+        required: true
 
 permissions:
   contents: write
@@ -13,10 +16,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Create release bot token
+        id: release-bot
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ vars.LETTERMINT_RELEASE_APP_ID }}
+          private-key: ${{ secrets.release_app_private_key }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.repository.default_branch }}
+          token: ${{ steps.release-bot.outputs.token }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -29,19 +43,54 @@ jobs:
         run: npm version "${RELEASE_TAG#v}" --no-git-tag-version --allow-same-version --ignore-scripts
 
       - name: Update changelog from release notes
-        uses: stefanzweifel/changelog-updater-action@v1
+        uses: stefanzweifel/changelog-updater-action@a938690fad7edf25368f37e43a1ed1b34303eb36 # v1
         with:
           latest-version: ${{ github.event.release.tag_name }}
           release-notes: ${{ github.event.release.body }}
 
-      - name: Open release update pull request
+      - name: Verify changed paths
+        shell: bash
+        run: |
+          for path in CHANGELOG.md package.json package-lock.json; do
+            test -f "$path"
+            test ! -L "$path"
+          done
+
+          mapfile -t changed_paths < <(git status --porcelain=v1 --untracked-files=all | cut -c4-)
+          for path in "${changed_paths[@]}"; do
+            case "$path" in
+              CHANGELOG.md|package.json|package-lock.json) ;;
+              *)
+                echo "Unexpected changed path: $path" >&2
+                exit 1
+                ;;
+            esac
+          done
+
+      - name: Commit updated changelog
+        shell: bash
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if git diff --quiet -- CHANGELOG.md; then
+            echo "CHANGELOG.md is already current."
+            exit 0
+          fi
+
+          git config user.name "lettermint-sdk-release-bot[bot]"
+          git config user.email "331370748+lettermint-sdk-release-bot[bot]@users.noreply.github.com"
+          git add -- CHANGELOG.md
+          git commit -m "Update CHANGELOG"
+          git push origin "HEAD:${DEFAULT_BRANCH}"
+
+      - name: Open package version pull request
         uses: peter-evans/create-pull-request@v8
         with:
+          token: ${{ github.token }}
           branch: automation/update-changelog
-          commit-message: Update changelog and package version
-          title: Update changelog and package version
-          body: Update CHANGELOG.md, package.json, and package-lock.json for the published release.
+          commit-message: Update package version
+          title: Update package version
+          body: Update package.json and package-lock.json for the published release.
           add-paths: |
-            CHANGELOG.md
             package.json
             package-lock.json
