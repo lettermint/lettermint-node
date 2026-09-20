@@ -1,3 +1,14 @@
+# [2.7.0](https://github.com/lettermint/lettermint-node/compare/v2.6.0...v2.7.0) (2026-09-14)
+
+
+### What's Changed
+
+* ci: publish Node SDK from GitHub releases by @bjarn in https://github.com/lettermint/lettermint-node/pull/27
+* feat: add typed message tags by @bjarn in https://github.com/lettermint/lettermint-node/pull/28
+* chore: add all team as code owners by @bjarn in https://github.com/lettermint/lettermint-node/pull/29
+
+**Full Changelog**: https://github.com/lettermint/lettermint-node/compare/v2.6.0...v2.7.0
+
 # [2.6.0](https://github.com/lettermint/lettermint-node/compare/v2.5.0...v2.6.0) (2026-09-07)
 
 
