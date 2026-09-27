@@ -71,14 +71,18 @@ jobs:
         shell: bash
         env:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GH_TOKEN: ${{ steps.release-bot.outputs.token }}
+          RELEASE_BOT_SLUG: ${{ steps.release-bot.outputs.app-slug }}
         run: |
           if git diff --quiet -- CHANGELOG.md; then
             echo "CHANGELOG.md is already current."
             exit 0
           fi
 
-          git config user.name "lettermint-sdk-release-bot[bot]"
-          git config user.email "331370748+lettermint-sdk-release-bot[bot]@users.noreply.github.com"
+          bot_login="${RELEASE_BOT_SLUG}[bot]"
+          bot_id=$(gh api "users/${bot_login}" --jq .id)
+          git config user.name "$bot_login"
+          git config user.email "${bot_id}+${bot_login}@users.noreply.github.com"
           git add -- CHANGELOG.md
           git commit -m "Update CHANGELOG"
           git push origin "HEAD:${DEFAULT_BRANCH}"
