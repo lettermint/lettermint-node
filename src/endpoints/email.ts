@@ -1,5 +1,6 @@
 import type {
   EmailPayload,
+  SandboxResult,
   SendBatchEmailResponse,
   SendBatchMailRequest,
   SendEmailResponse,
@@ -93,12 +94,6 @@ export class EmailEndpoint extends Endpoint {
     return this;
   }
 
-  /** Set the requested delivery time for the email. */
-  public scheduledAt(scheduledAt: string): this {
-    this.payload.scheduled_at = scheduledAt;
-    return this;
-  }
-
   /**
    * Set the HTML body of the email
    *
@@ -181,15 +176,9 @@ export class EmailEndpoint extends Endpoint {
    * @param filename The attachment filename
    * @param content The base64-encoded file content
    * @param content_id The Content-ID for inline attachments (optional)
-   * @param content_type The MIME type for the attachment (optional)
    * @returns The current instance for chaining
    */
-  public attach(
-    filename: string,
-    content: string,
-    content_id?: string,
-    content_type?: string
-  ): this {
+  public attach(filename: string, content: string, content_id?: string): this {
     if (!this.payload.attachments) {
       this.payload.attachments = [];
     }
@@ -198,20 +187,8 @@ export class EmailEndpoint extends Endpoint {
       filename,
       content,
       ...(content_id && { content_id }),
-      ...(content_type && { content_type }),
     });
 
-    return this;
-  }
-
-  /**
-   * Set per-email delivery and tracking settings
-   *
-   * @param settings Settings that override the selected route for this email
-   * @returns The current instance for chaining
-   */
-  public settings(settings: NonNullable<EmailPayload['settings']>): this {
-    this.payload.settings = settings;
     return this;
   }
 
@@ -237,45 +214,18 @@ export class EmailEndpoint extends Endpoint {
    * @returns The current instance for chaining
    */
   public tag(tag: string): this {
-    if ((this.payload.tags?.length ?? 0) >= 20) {
-      throw new TypeError('A legacy tag and no more than 19 message tags are permitted');
-    }
     this.payload.tag = tag;
     return this;
   }
 
   /**
-   * Set reusable name-value tags for the email.
+   * Select the simulated result for a Sandbox project.
    *
-   * @param tags The tags to attach to the email
+   * @param result The result to simulate for every recipient
    * @returns The current instance for chaining
    */
-  public tags(tags: NonNullable<EmailPayload['tags']>): this {
-    const maximum = this.payload.tag == null ? 20 : 19;
-    if (tags.length > maximum) {
-      throw new TypeError(
-        `No more than ${maximum} message tags are permitted with the current legacy tag`
-      );
-    }
-
-    const names = new Set<string>();
-    for (const tag of tags) {
-      if (tag.name.length < 1 || tag.name.length > 32 || !/^[A-Za-z0-9_-]+$/.test(tag.name)) {
-        throw new TypeError('Message tag names must match ^[A-Za-z0-9_-]{1,32}$');
-      }
-      if (tag.name.toLowerCase().startsWith('__lettermint')) {
-        throw new TypeError('Message tag names must not start with __lettermint');
-      }
-      if (tag.value.length < 1 || tag.value.length > 64 || !/^[A-Za-z0-9_-]+$/.test(tag.value)) {
-        throw new TypeError('Message tag values must match ^[A-Za-z0-9_-]{1,64}$');
-      }
-      if (names.has(tag.name)) {
-        throw new TypeError(`Duplicate message tag name: ${tag.name}`);
-      }
-      names.add(tag.name);
-    }
-
-    this.payload.tags = tags;
+  public sandboxResult(result: SandboxResult): this {
+    this.payload.sandbox_result = result;
     return this;
   }
 
@@ -298,15 +248,7 @@ export class EmailEndpoint extends Endpoint {
   }
 
   public async sendBatch(payload: SendBatchMailRequest): Promise<SendBatchEmailResponse> {
-    const config = this.idempotencyKeyValue
-      ? { headers: { 'Idempotency-Key': this.idempotencyKeyValue } }
-      : undefined;
-
-    try {
-      return await this.httpClient.post<SendBatchEmailResponse>('/send/batch', payload, config);
-    } finally {
-      this.reset();
-    }
+    return this.httpClient.post<SendBatchEmailResponse>('/send/batch', payload);
   }
 
   public async ping(): Promise<string> {

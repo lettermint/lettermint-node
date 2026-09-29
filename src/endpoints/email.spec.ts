@@ -150,10 +150,7 @@ describe('EmailEndpoint', () => {
   });
 
   it('should set custom headers', () => {
-    const headers = {
-      'Message-ID': '<ticket-123@example.com>',
-      'X-LM-Preserve-Message-ID': 'true',
-    };
+    const headers = { 'X-Custom': 'Value', 'X-Another': 'Another Value' };
     const result = emailEndpoint.headers(headers);
 
     expect(result).toBe(emailEndpoint);
@@ -212,47 +209,6 @@ describe('EmailEndpoint', () => {
     });
   });
 
-  it('should add attachments with content_id and content_type', () => {
-    const result = emailEndpoint.attach('invite.ics', 'base64calendar', 'invite', 'text/calendar');
-
-    expect(result).toBe(emailEndpoint);
-
-    return emailEndpoint.send().then(() => {
-      expect(client.post).toHaveBeenCalledWith(
-        '/send',
-        expect.objectContaining({
-          attachments: [
-            {
-              filename: 'invite.ics',
-              content: 'base64calendar',
-              content_id: 'invite',
-              content_type: 'text/calendar',
-            },
-          ],
-        }),
-        undefined
-      );
-    });
-  });
-
-  it('should set per-email settings', () => {
-    const settings = {
-      track_opens: false,
-      track_clicks: true,
-      tls: 'enforced' as const,
-    };
-
-    expect(emailEndpoint.settings(settings)).toBe(emailEndpoint);
-
-    return emailEndpoint.send().then(() => {
-      expect(client.post).toHaveBeenCalledWith(
-        '/send',
-        expect.objectContaining({ settings }),
-        undefined
-      );
-    });
-  });
-
   it('should set the route', () => {
     const result = emailEndpoint.route('test-route');
 
@@ -303,41 +259,20 @@ describe('EmailEndpoint', () => {
     });
   });
 
-  it('should set reusable tags', () => {
-    const tags = [{ name: 'campaign', value: 'welcome-v2' }];
-    const result = emailEndpoint.tags(tags);
+  it('should set the Sandbox result', () => {
+    const result = emailEndpoint.sandboxResult('hard_bounced');
 
     expect(result).toBe(emailEndpoint);
 
     return emailEndpoint.send().then(() => {
       expect(client.post).toHaveBeenCalledWith(
         '/send',
-        expect.objectContaining({ tags }),
+        expect.objectContaining({
+          sandbox_result: 'hard_bounced',
+        }),
         undefined
       );
     });
-  });
-
-  it.each([
-    [
-      [
-        { name: 'duplicate', value: 'one' },
-        { name: 'duplicate', value: 'two' },
-      ],
-    ],
-    [[{ name: '__LETTERMint_internal', value: 'one' }]],
-    [[{ name: 'invalid name', value: 'one' }]],
-    [[{ name: 'valid', value: 'invalid value' }]],
-  ])('should reject invalid reusable tags', (tags) => {
-    expect(() => emailEndpoint.tags(tags)).toThrow(TypeError);
-  });
-
-  it('should count the legacy tag in the message tag limit', () => {
-    const tags = Array.from({ length: 20 }, (_, index) => ({
-      name: `tag_${index}`,
-      value: 'value',
-    }));
-    expect(() => emailEndpoint.tag('legacy').tags(tags)).toThrow(TypeError);
   });
 
   it('should send the email with all options', async () => {
@@ -480,23 +415,5 @@ describe('EmailEndpoint', () => {
         'Idempotency-Key': 'unique-id-123',
       },
     });
-  });
-
-  it('should set and reset the batch idempotency key', async () => {
-    const payload = [
-      {
-        from: 'sender@example.com',
-        to: ['recipient@example.com'],
-        subject: 'Test Subject',
-      },
-    ];
-
-    await emailEndpoint.idempotencyKey('batch-key').sendBatch(payload);
-    await emailEndpoint.sendBatch(payload);
-
-    expect(client.post).toHaveBeenNthCalledWith(1, '/send/batch', payload, {
-      headers: { 'Idempotency-Key': 'batch-key' },
-    });
-    expect(client.post).toHaveBeenNthCalledWith(2, '/send/batch', payload, undefined);
   });
 });

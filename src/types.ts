@@ -4,12 +4,6 @@
 
 export type MessageStatus = "scheduled" | "pending" | "queued" | "quarantined" | "suppressed" | "processed" | "delivered" | "opened" | "clicked" | "soft_bounced" | "hard_bounced" | "spam_complaint" | "failed" | "blocked" | "policy_rejected" | "unsubscribed" | "canceled";
 
-/** A reusable exact-match message tag. */
-export interface MessageTag {
-  "name": string;
-  "value": string;
-}
-
 export interface SendMailRequest {
   "route"?: string;
   "from": string;
@@ -22,7 +16,10 @@ export interface SendMailRequest {
   "headers"?: Record<string, string>;
   "metadata"?: Record<string, string>;
   "tag"?: string | null;
-  "tags"?: MessageTag[];
+  "tags"?: {
+  "name": string;
+  "value": string;
+}[];
   "settings"?: {
   "track_opens"?: boolean;
   "track_clicks"?: boolean;
@@ -36,6 +33,7 @@ export interface SendMailRequest {
   "content_type"?: string | null;
   "content_id"?: string | null;
 }[];
+  "sandbox_result"?: SandboxResult;
 }
 
 export type SendBatchMailRequest = {
@@ -50,7 +48,10 @@ export type SendBatchMailRequest = {
   "headers"?: Record<string, string>;
   "metadata"?: Record<string, string>;
   "tag"?: string | null;
-  "tags"?: MessageTag[];
+  "tags"?: {
+  "name": string;
+  "value": string;
+}[];
   "settings"?: {
   "track_opens"?: boolean;
   "track_clicks"?: boolean;
@@ -64,23 +65,16 @@ export type SendBatchMailRequest = {
   "content_type"?: string | null;
   "content_id"?: string | null;
 }[];
+  "sandbox_result"?: SandboxResult;
 }[];
 
 export type TlsPolicy = "opportunistic" | "enforced";
 
+export type SandboxResult = "delivered" | "hard_bounced" | "soft_bounced" | "deferred" | "failed" | "suppressed" | "spam_complaint" | "auto_replied" | "opened" | "clicked" | "unsubscribed";
+
 export type AttachmentDelivery = "inline" | "url";
 
 export type BuiltInTeamRole = "owner" | "admin" | "member";
-
-export interface CursorPaginator {
-  "data": string[];
-  "path": string | null;
-  "per_page": number;
-  "next_cursor": string | null;
-  "next_page_url": string | null;
-  "prev_cursor": string | null;
-  "prev_page_url": string | null;
-}
 
 export type DkimMode = "legacy_txt" | "managed_cname";
 
@@ -145,7 +139,10 @@ export interface MessageData {
   "status_changed_at": string | null;
   "scheduled_at": string | null;
   "tag": string | null;
-  "tags": MessageTag[];
+  "tags": {
+  "name": string;
+  "value": string;
+}[];
   "from_email": string;
   "from_name": string | null;
   "reply_to": string[] | null;
@@ -159,13 +156,18 @@ export interface MessageData {
   "spam_symbols"?: SpamSymbol[];
   "route_id": string;
   "created_at": string;
+  "delivery_mode": DeliveryMode;
+  "sandbox_result": SandboxResult | null;
 }
 
 export interface MessageEventData {
   "message_id": string;
   "event": MessageEventType;
   "tag": string | null;
-  "tags": MessageTag[];
+  "tags": {
+  "name": string;
+  "value": string;
+}[];
   "metadata": Record<string, unknown> | null;
   "timestamp": string;
 }
@@ -186,14 +188,20 @@ export interface MessageListData {
   "bcc": MessageRecipientData[] | null;
   "reply_to": string[] | null;
   "tag": string | null;
-  "tags": MessageTag[];
+  "tags": {
+  "name": string;
+  "value": string;
+}[];
   "status_changed_at": string | null;
   "created_at": string;
+  "delivery_mode": DeliveryMode;
+  "sandbox_result": SandboxResult | null;
 }
 
 export interface MessageRecipientData {
   "email": string;
   "name": string | null;
+  "sandbox_result": SandboxResult | null;
 }
 
 export interface MessageStatsData {
@@ -225,6 +233,7 @@ export interface ProjectData {
   "last_28_days"?: MessageStatsData | null;
   "created_at": string;
   "updated_at": string;
+  "delivery_mode": DeliveryMode;
 }
 
 export interface ProjectListData {
@@ -244,6 +253,10 @@ export type RbacPermission = "team:manage" | "billing:manage" | "security:manage
 
 export type RecordType = "TXT" | "CNAME" | "MX";
 
+export interface RescheduleMessageRequest {
+  "scheduled_at": string;
+}
+
 export interface RouteData {
   "id": string;
   "project_id": string;
@@ -252,6 +265,7 @@ export interface RouteData {
   "route_type": RouteType;
   "is_default": boolean;
   "inbound_address"?: string | null;
+  "inbound_mx_hostname"?: string;
   "inbound_domain"?: string | null;
   "inbound_domain_verified_at"?: string | null;
   "inbound_spam_threshold"?: number | null;
@@ -384,6 +398,7 @@ export interface StoreProjectData {
   "smtp_enabled"?: boolean;
   "initial_routes"?: InitialRoutes;
   "short_token"?: boolean;
+  "delivery_mode"?: DeliveryMode;
 }
 
 export interface StoreRouteData {
@@ -399,15 +414,20 @@ export interface StoreSuppressionData {
   "scope": SuppressionScope;
   "route_id"?: string | null;
   "project_id"?: string | null;
+  "applies_to"?: SuppressionAppliesTo | null;
 }
 
 export interface StoreWebhookData {
-  "route_id": string;
   "name": string;
   "url": string;
   "events": WebhookEvent[];
   "enabled"?: boolean | null;
   "include_machine_events"?: boolean | null;
+  "scope"?: WebhookScope | null;
+  "project_ids"?: string[];
+  "route_ids"?: string[];
+  "route_id"?: string | null;
+  "delivery_mode_filter"?: WebhookDeliveryModeFilter | null;
 }
 
 export interface SuppressedRecipientData {
@@ -416,16 +436,18 @@ export interface SuppressedRecipientData {
   "value": string;
   "reason": SuppressionReason;
   "scope": SuppressionScope;
+  "applies_to": SuppressionAppliesTo;
   "project_id": string | null;
   "route_id": string | null;
   "source_message"?: SuppressionSourceMessageData | null;
   "created_at": string;
-  "updated_at": string;
 }
+
+export type SuppressionAppliesTo = "all" | "broadcast";
 
 export type SuppressionReason = "spam_complaint" | "hard_bounce" | "unsubscribe" | "manual";
 
-export type SuppressionScope = "global" | "team" | "project" | "route";
+export type SuppressionScope = "team" | "project" | "route";
 
 export interface SuppressionSourceMessageData {
   "id": string;
@@ -508,6 +530,7 @@ export interface UpdateProjectData {
   "smtp_enabled"?: boolean | null;
   "redact_email_content"?: boolean | null;
   "default_route_id"?: string | null;
+  "delivery_mode"?: DeliveryMode | null;
 }
 
 export interface UpdateRouteData {
@@ -551,26 +574,37 @@ export interface UpdateWebhookData {
   "events"?: WebhookEvent[];
   "enabled"?: boolean;
   "include_machine_events"?: boolean;
+  "scope"?: WebhookScope;
+  "project_ids"?: string[];
+  "route_ids"?: string[];
+  "route_id"?: string | null;
+  "delivery_mode_filter"?: WebhookDeliveryModeFilter;
 }
 
 export interface WebhookData {
   "id": string;
-  "route_id": string;
+  "scope": WebhookScope;
+  "project_ids": string[];
+  "route_ids": string[];
+  "route_id": string | null;
   "name": string;
   "url": string;
   "events": string[];
   "enabled": boolean;
   "include_machine_events": boolean;
-  "secret"?: string;
   "last_called_at": string | null;
   "created_at": string;
   "updated_at": string;
+  "delivery_mode_filter": WebhookDeliveryModeFilter;
 }
 
 export interface WebhookDeliveryData {
   "id": string;
   "webhook_id": string;
   "event_type": WebhookEvent;
+  "source_scope": string | null;
+  "source_project_id": string | null;
+  "source_route_id": string | null;
   "status": WebhookDeliveryStatus;
   "attempt_number": number;
   "http_status_code": number | null;
@@ -581,12 +615,16 @@ export interface WebhookDeliveryData {
   "error_message": string | null;
   "delivered_at": string | null;
   "timestamp": string;
+  "sandbox": boolean;
 }
 
 export interface WebhookDeliveryListData {
   "id": string;
   "webhook_id": string;
   "event_type": WebhookEvent;
+  "source_scope": string | null;
+  "source_project_id": string | null;
+  "source_route_id": string | null;
   "status": WebhookDeliveryStatus;
   "attempt_number": number;
   "http_status_code": number | null;
@@ -597,41 +635,69 @@ export interface WebhookDeliveryListData {
 
 export type WebhookDeliveryStatus = "pending" | "success" | "failed" | "client_error" | "server_error" | "timeout";
 
-export type WebhookEvent = "message.created" | "message.sent" | "message.delivered" | "message.auto_replied" | "message.hard_bounced" | "message.soft_bounced" | "message.spam_complaint" | "message.failed" | "message.suppressed" | "message.unsubscribed" | "message.opened" | "message.clicked" | "message.inbound" | "message.policy_rejected" | "suppression.added" | "suppression.removed" | "webhook.test";
+export type WebhookEvent = "message.created" | "message.sent" | "message.delivered" | "message.auto_replied" | "message.hard_bounced" | "message.soft_bounced" | "message.spam_complaint" | "message.failed" | "message.suppressed" | "message.unsubscribed" | "message.opened" | "message.clicked" | "message.inbound" | "message.policy_rejected" | "message.scheduled" | "message.rescheduled" | "message.canceled" | "message.released" | "suppression.added" | "suppression.removed" | "webhook.test";
 
 export interface WebhookListData {
   "id": string;
-  "route_id": string;
+  "scope": WebhookScope;
+  "project_ids": string[];
+  "route_ids": string[];
+  "route_id": string | null;
   "name": string;
   "url": string;
-  "events": WebhookEvent[];
+  "events": string[];
   "enabled": boolean;
   "last_called_at": string | null;
   "created_at": string;
   "updated_at": string;
 }
 
+export type WebhookScope = "team" | "project" | "route";
+
+export interface WebhookSecretData {
+  "id": string;
+  "scope": WebhookScope;
+  "project_ids": string[];
+  "route_ids": string[];
+  "route_id": string | null;
+  "name": string;
+  "url": string;
+  "events": string[];
+  "enabled": boolean;
+  "include_machine_events": boolean;
+  "secret": string;
+  "last_called_at": string | null;
+  "created_at": string;
+  "updated_at": string;
+  "delivery_mode_filter": WebhookDeliveryModeFilter;
+}
+
+export type DeliveryMode = "live" | "sandbox";
+
+export type WebhookDeliveryModeFilter = "live" | "sandbox" | "both";
+
 export type EmailPayload = SendMailRequest;
 export type SendEmailResponse = SendMailResponse;
 export type SendBatchEmailResponse = SendBatchMailResponse;
 export type SendMailResponse = {
-  "message_id": string;
+  "message_id": string | null;
   "status": MessageStatus;
-  "scheduled_at"?: string;
+  "scheduled_at": string;
+  "sandbox"?: true;
+  "sandbox_result"?: SandboxResult;
+} | {
+  "message_id": string | null;
+  "status": MessageStatus;
+  "sandbox"?: true;
+  "sandbox_result"?: SandboxResult;
 };
 export type SendBatchMailResponse = {
   "message_id": string;
   "status": MessageStatus;
   "scheduled_at"?: string;
+  "sandbox"?: true;
+  "sandbox_result"?: SandboxResult;
 }[];
-export interface RescheduleMessageRequest {
-  "scheduled_at": string;
-}
-export type RescheduleMessageResponse = {
-  "message_id": string;
-  "status": MessageStatus | null;
-  "scheduled_at": string | null;
-};
 export type PingResponse = 200;
 export type DomainIndexResponse = {
   "data": DomainListData[];
@@ -668,6 +734,17 @@ export type BlockedFileTypesResponse = {
   "extensions": string[];
   "mime_types": string[];
 };
+export type RescheduleMessageResponse = {
+  "message_id": string;
+  "status": MessageStatus | null;
+  "scheduled_at": string | null;
+};
+export type MessageShowResponse = MessageData;
+export type CancelScheduledMessageResponse = {
+  "message_id": string;
+  "status": MessageStatus | null;
+  "scheduled_at": string | null;
+};
 export type MessageIndexResponse = {
   "data": MessageListData[];
   "links": string[];
@@ -680,7 +757,6 @@ export type MessageIndexResponse = {
   "prev_cursor_url": string | null;
 };
 };
-export type MessageShowResponse = MessageData;
 export type MessageEventsResponse = {
   "data": MessageEventData[];
   "links": string[];
@@ -694,7 +770,11 @@ export type MessageEventsResponse = {
 };
 };
 export type ProcessInboundMessageResponse = {
-  "data": { "message_id": string; "status": "queued"; "webhook_target_count": number; };
+  "data": {
+  "message_id": string;
+  "status": "queued";
+  "webhook_target_count": number;
+};
 };
 export type ProjectIndexResponse = {
   "data": ProjectListData[];
@@ -811,7 +891,7 @@ export type WebhookIndexResponse = {
 };
 export type WebhookStoreRequest = StoreWebhookData;
 export type WebhookStoreResponse = {
-  "data": WebhookData;
+  "data": WebhookSecretData;
   "message": "Webhook created successfully. Please save the secret as it will not be shown again.";
 };
 export type WebhookShowResponse = WebhookData;
@@ -828,7 +908,7 @@ export type WebhookTestResponse = {
   "delivery_id": string;
 };
 export type WebhookRegenerateSecretResponse = {
-  "data": WebhookData;
+  "data": WebhookSecretData;
   "message": "Webhook secret regenerated successfully. Please update your integration.";
 };
 export type WebhookDeliveriesResponse = {

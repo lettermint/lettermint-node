@@ -133,33 +133,10 @@ describe('public SDK surface', () => {
     expect(mockFetch).toHaveBeenNthCalledWith(
       3,
       'https://api.lettermint.co/v1/team/members/user%2Fid/assignment',
-      expect.objectContaining({ method: 'PUT', body: JSON.stringify(assignment) })
-    );
-  });
-
-  it('reschedules and cancels scheduled messages', async () => {
-    const api = Lettermint.api('api-token');
-    await api.messages.reschedule('message/id', { scheduled_at: '2026-08-27T09:00:00Z' });
-    await api.messages.cancel('message/id');
-    await api.messages.process('message/id');
-
-    expect(mockFetch).toHaveBeenNthCalledWith(
-      1,
-      'https://api.lettermint.co/v1/messages/message%2Fid',
       expect.objectContaining({
-        method: 'PATCH',
-        body: JSON.stringify({ scheduled_at: '2026-08-27T09:00:00Z' }),
+        method: 'PUT',
+        body: JSON.stringify(assignment),
       })
-    );
-    expect(mockFetch).toHaveBeenNthCalledWith(
-      2,
-      'https://api.lettermint.co/v1/messages/message%2Fid/cancel',
-      expect.objectContaining({ method: 'POST' })
-    );
-    expect(mockFetch).toHaveBeenNthCalledWith(
-      3,
-      'https://api.lettermint.co/v1/messages/message%2Fid/process',
-      expect.objectContaining({ method: 'POST' })
     );
   });
 });
@@ -177,9 +154,6 @@ describe('api endpoint coverage', () => {
     'v1.blockedFileTypes': 'blockedFileTypes',
     'message.index': 'messages.list',
     'message.show': 'messages.retrieve',
-    rescheduleMessage: 'messages.reschedule',
-    cancelScheduledMessage: 'messages.cancel',
-    processInboundMessage: 'messages.process',
     'message.events': 'messages.events',
     'message.source': 'messages.source',
     'message.html': 'messages.html',
@@ -237,18 +211,17 @@ describe('api endpoint coverage', () => {
 
 describe('generated api types', () => {
   it('matches current Team API schema additions', () => {
-    const messageEvent: Types.MessageEventType = 'scheduled';
+    const messageEvent: Types.MessageEventType = 'auto_replied';
     const webhookEvent: Types.WebhookEvent = 'message.auto_replied';
     const builtInRole: Types.BuiltInTeamRole = 'admin';
     const suppression: Types.StoreSuppressionData = {
       reason: 'manual',
-      scope: 'global',
+      scope: 'team',
       emails: ['blocked@example.com'],
     };
     const routeSettings: Types.UpdateRouteSettingsData = {
       redact_email_content: true,
       generate_plaintext_fallback: false,
-      tls: 'enforced',
     };
     const routeInboundSettings: Types.UpdateRouteInboundSettingsData = {
       inbound_domain: 'inbound.example.com',
@@ -262,6 +235,7 @@ describe('generated api types', () => {
     const projectCreate: Types.StoreProjectData = {
       name: 'Production',
       short_token: true,
+      delivery_mode: 'sandbox',
     };
     const project: Types.ProjectData = {
       id: 'project_123',
@@ -274,9 +248,36 @@ describe('generated api types', () => {
       token_last_used_ip: null,
       created_at: '2026-06-28T00:00:00Z',
       updated_at: '2026-06-28T00:00:00Z',
+      delivery_mode: 'sandbox',
     };
     const projectUpdate: Types.UpdateProjectData = {
       redact_email_content: false,
+      delivery_mode: 'live',
+    };
+    const sendRequest: Types.SendMailRequest = {
+      from: 'sender@example.com',
+      to: ['recipient@example.com'],
+      subject: 'Sandbox test',
+      sandbox_result: 'clicked',
+    };
+    const sendResponse: Types.SendEmailResponse = {
+      message_id: 'message_123',
+      status: 'delivered',
+      sandbox: true,
+      sandbox_result: 'clicked',
+    };
+    const messageMode: Pick<Types.MessageData, 'delivery_mode' | 'sandbox_result'> = {
+      delivery_mode: 'sandbox',
+      sandbox_result: 'clicked',
+    };
+    const webhookCreate: Types.StoreWebhookData = {
+      name: 'Sandbox webhook',
+      url: 'https://example.com/webhooks',
+      events: ['message.delivered'],
+      delivery_mode_filter: 'both',
+    };
+    const webhookDelivery: Pick<Types.WebhookDeliveryData, 'sandbox'> = {
+      sandbox: true,
     };
     const blockedFileTypes: Types.BlockedFileTypesResponse = {
       extensions: ['exe'],
@@ -293,22 +294,6 @@ describe('generated api types', () => {
       role_id: 'role_123',
       project_access: { scope: 'selected', project_ids: ['project_123'] },
     };
-    const domain: Types.DomainData = {
-      id: 'domain_123',
-      domain: 'example.com',
-      dkim_mode: 'managed_cname',
-      rotation_ready: true,
-      status_changed_at: null,
-      created_at: '2026-08-12T00:00:00Z',
-    };
-    const sourceMessage: Types.SuppressionSourceMessageData = {
-      id: 'msg_123',
-      available: true,
-      subject: 'Blocked',
-      created_at: '2026-08-12T00:00:00Z',
-    };
-    const spamScore: Types.MessageListData['spam_score'] = 2.5;
-    const scheduledAt: Types.SendMailRequest['scheduled_at'] = '2026-08-27T09:00:00Z';
 
     expect({
       messageEvent,
@@ -319,13 +304,14 @@ describe('generated api types', () => {
       projectCreate,
       project,
       projectUpdate,
+      sendRequest,
+      sendResponse,
+      messageMode,
+      webhookCreate,
+      webhookDelivery,
       blockedFileTypes,
       teamRole,
       assignment,
-      domain,
-      sourceMessage,
-      spamScore,
-      scheduledAt,
     }).toBeDefined();
   });
 });
