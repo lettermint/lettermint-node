@@ -139,6 +139,32 @@ describe('public SDK surface', () => {
       })
     );
   });
+
+  it('reschedules, cancels, and processes messages', async () => {
+    const api = Lettermint.api('api-token');
+    await api.messages.reschedule('message/id', { scheduled_at: '2026-08-27T09:00:00Z' });
+    await api.messages.cancel('message/id');
+    await api.messages.process('message/id');
+
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      1,
+      'https://api.lettermint.co/v1/messages/message%2Fid',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ scheduled_at: '2026-08-27T09:00:00Z' }),
+      })
+    );
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      2,
+      'https://api.lettermint.co/v1/messages/message%2Fid/cancel',
+      expect.objectContaining({ method: 'POST' })
+    );
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      3,
+      'https://api.lettermint.co/v1/messages/message%2Fid/process',
+      expect.objectContaining({ method: 'POST' })
+    );
+  });
 });
 
 describe('api endpoint coverage', () => {
@@ -154,6 +180,9 @@ describe('api endpoint coverage', () => {
     'v1.blockedFileTypes': 'blockedFileTypes',
     'message.index': 'messages.list',
     'message.show': 'messages.retrieve',
+    rescheduleMessage: 'messages.reschedule',
+    cancelScheduledMessage: 'messages.cancel',
+    processInboundMessage: 'messages.process',
     'message.events': 'messages.events',
     'message.source': 'messages.source',
     'message.html': 'messages.html',
@@ -194,6 +223,8 @@ describe('api endpoint coverage', () => {
 
   it('exposes documented API operations', () => {
     const api = Lettermint.api('api-token') as unknown as Record<string, unknown>;
+
+    expect(Object.keys(documentedMethods)).toHaveLength(50);
 
     for (const exposedPath of Object.values(documentedMethods)) {
       const segments = exposedPath.split('.');
@@ -294,6 +325,29 @@ describe('generated api types', () => {
       role_id: 'role_123',
       project_access: { scope: 'selected', project_ids: ['project_123'] },
     };
+    const messageTag: Types.MessageTag = { name: 'campaign', value: 'welcome' };
+    const cursorPaginator: Types.CursorPaginator = {
+      data: [],
+      path: null,
+      per_page: 25,
+      next_cursor: null,
+      next_page_url: null,
+      prev_cursor: null,
+      prev_page_url: null,
+    };
+    const rescheduleRequest: Types.RescheduleMessageRequest = {
+      scheduled_at: '2026-10-01T09:00:00Z',
+    };
+    const rescheduleResponse: Types.RescheduleMessageResponse = {
+      message_id: 'message_123',
+      status: 'scheduled',
+      scheduled_at: '2026-10-01T09:00:00Z',
+    };
+    const cancelResponse: Types.CancelScheduledMessageResponse = {
+      message_id: 'message_123',
+      status: 'canceled',
+      scheduled_at: null,
+    };
 
     expect({
       messageEvent,
@@ -312,6 +366,11 @@ describe('generated api types', () => {
       blockedFileTypes,
       teamRole,
       assignment,
+      messageTag,
+      cursorPaginator,
+      rescheduleRequest,
+      rescheduleResponse,
+      cancelResponse,
     }).toBeDefined();
   });
 });

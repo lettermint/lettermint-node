@@ -4,6 +4,12 @@
 
 export type MessageStatus = "scheduled" | "pending" | "queued" | "quarantined" | "suppressed" | "processed" | "delivered" | "opened" | "clicked" | "soft_bounced" | "hard_bounced" | "spam_complaint" | "failed" | "blocked" | "policy_rejected" | "unsubscribed" | "canceled";
 
+/** A reusable exact-match message tag. */
+export interface MessageTag {
+  "name": string;
+  "value": string;
+}
+
 export interface SendMailRequest {
   "route"?: string;
   "from": string;
@@ -16,10 +22,7 @@ export interface SendMailRequest {
   "headers"?: Record<string, string>;
   "metadata"?: Record<string, string>;
   "tag"?: string | null;
-  "tags"?: {
-  "name": string;
-  "value": string;
-}[];
+  "tags"?: MessageTag[];
   "settings"?: {
   "track_opens"?: boolean;
   "track_clicks"?: boolean;
@@ -48,10 +51,7 @@ export type SendBatchMailRequest = {
   "headers"?: Record<string, string>;
   "metadata"?: Record<string, string>;
   "tag"?: string | null;
-  "tags"?: {
-  "name": string;
-  "value": string;
-}[];
+  "tags"?: MessageTag[];
   "settings"?: {
   "track_opens"?: boolean;
   "track_clicks"?: boolean;
@@ -75,6 +75,16 @@ export type SandboxResult = "delivered" | "hard_bounced" | "soft_bounced" | "def
 export type AttachmentDelivery = "inline" | "url";
 
 export type BuiltInTeamRole = "owner" | "admin" | "member";
+
+export interface CursorPaginator {
+  "data": string[];
+  "path": string | null;
+  "per_page": number;
+  "next_cursor": string | null;
+  "next_page_url": string | null;
+  "prev_cursor": string | null;
+  "prev_page_url": string | null;
+}
 
 export type DkimMode = "legacy_txt" | "managed_cname";
 
@@ -139,10 +149,7 @@ export interface MessageData {
   "status_changed_at": string | null;
   "scheduled_at": string | null;
   "tag": string | null;
-  "tags": {
-  "name": string;
-  "value": string;
-}[];
+  "tags": MessageTag[];
   "from_email": string;
   "from_name": string | null;
   "reply_to": string[] | null;
@@ -164,10 +171,7 @@ export interface MessageEventData {
   "message_id": string;
   "event": MessageEventType;
   "tag": string | null;
-  "tags": {
-  "name": string;
-  "value": string;
-}[];
+  "tags": MessageTag[];
   "metadata": Record<string, unknown> | null;
   "timestamp": string;
 }
@@ -188,10 +192,7 @@ export interface MessageListData {
   "bcc": MessageRecipientData[] | null;
   "reply_to": string[] | null;
   "tag": string | null;
-  "tags": {
-  "name": string;
-  "value": string;
-}[];
+  "tags": MessageTag[];
   "status_changed_at": string | null;
   "created_at": string;
   "delivery_mode": DeliveryMode;

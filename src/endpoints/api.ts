@@ -50,6 +50,21 @@ export class MessagesEndpoint extends Endpoint {
     return this.httpClient.get(`/messages/${this.pathSegment(messageId)}`);
   }
 
+  public reschedule(
+    messageId: string,
+    payload: Types.RescheduleMessageRequest
+  ): Promise<Types.RescheduleMessageResponse> {
+    return this.httpClient.patch(`/messages/${this.pathSegment(messageId)}`, payload);
+  }
+
+  public cancel(messageId: string): Promise<Types.CancelScheduledMessageResponse> {
+    return this.httpClient.post(`/messages/${this.pathSegment(messageId)}/cancel`);
+  }
+
+  public process(messageId: string): Promise<Types.ProcessInboundMessageResponse> {
+    return this.httpClient.post(`/messages/${this.pathSegment(messageId)}/process`);
+  }
+
   public events(messageId: string): Promise<Types.MessageEventsResponse> {
     return this.httpClient.get(`/messages/${this.pathSegment(messageId)}/events`);
   }
