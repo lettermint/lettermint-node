@@ -27,7 +27,7 @@ export interface SendMailRequest {
   "track_opens"?: boolean;
   "track_clicks"?: boolean;
   "tls"?: TlsPolicy;
-} | null;
+};
   "html"?: string | null;
   "text"?: string | null;
   "attachments"?: {
@@ -56,7 +56,7 @@ export type SendBatchMailRequest = {
   "track_opens"?: boolean;
   "track_clicks"?: boolean;
   "tls"?: TlsPolicy;
-} | null;
+};
   "html"?: string | null;
   "text"?: string | null;
   "attachments"?: {
@@ -240,6 +240,7 @@ export interface ProjectData {
 export interface ProjectListData {
   "id": string;
   "name": string;
+  "delivery_mode": DeliveryMode;
   "smtp_enabled": boolean;
   "routes_count": number;
   "domains_count": number;
@@ -250,7 +251,7 @@ export interface ProjectListData {
 
 export type RbacConflictCode = "stale_resource" | "owner_protected" | "last_owner" | "built_in_role_immutable" | "custom_role_requires_pro";
 
-export type RbacPermission = "team:manage" | "billing:manage" | "security:manage" | "audit:read" | "support:manage" | "members:read" | "members:manage" | "roles:manage" | "team_tokens:read" | "team_tokens:manage" | "team_tokens:rotate" | "team_tokens:revoke" | "projects:create" | "team_suppressions:read" | "team_suppressions:add" | "team_suppressions:remove" | "projects:read" | "projects:manage" | "projects:delete" | "routes:read" | "routes:manage" | "routes:delete" | "domains:read" | "domains:manage" | "domains:delete" | "project_tokens:read" | "project_tokens:manage" | "project_tokens:rotate" | "project_tokens:revoke" | "webhooks:read" | "webhooks:manage" | "webhooks:delete" | "webhooks:rotate_secret" | "stats:read" | "messages:read" | "messages:read_content" | "messages:send" | "suppressions:read" | "suppressions:add" | "suppressions:remove";
+export type RbacPermission = "team:manage" | "billing:manage" | "security:manage" | "audit:read" | "support:manage" | "members:read" | "members:manage" | "roles:manage" | "team_tokens:read" | "team_tokens:manage" | "team_tokens:rotate" | "team_tokens:revoke" | "projects:create" | "team_suppressions:read" | "team_suppressions:add" | "team_suppressions:remove" | "projects:read" | "projects:manage" | "projects:delete" | "routes:read" | "routes:manage" | "routes:delete" | "domains:read" | "domains:manage" | "domains:delete" | "project_tokens:read" | "project_tokens:manage" | "project_tokens:rotate" | "project_tokens:revoke" | "webhooks:read" | "webhooks:manage" | "webhooks:delete" | "webhooks:rotate_secret" | "stats:read" | "analytics:read" | "messages:read" | "messages:read_content" | "messages:send" | "suppressions:read" | "suppressions:add" | "suppressions:remove";
 
 export type RecordType = "TXT" | "CNAME" | "MX";
 
@@ -397,15 +398,21 @@ export interface StoreDomainData {
 export interface StoreProjectData {
   "name": string;
   "smtp_enabled"?: boolean;
+  "delivery_mode"?: DeliveryMode;
   "initial_routes"?: InitialRoutes;
   "short_token"?: boolean;
-  "delivery_mode"?: DeliveryMode;
+  "redact_email_content"?: boolean;
 }
 
 export interface StoreRouteData {
   "name": string;
   "route_type": RouteType;
   "slug"?: string | null;
+  "settings"?: UpdateRouteSettingsData | null;
+  "inbound_settings"?: UpdateRouteInboundSettingsData | null;
+  "inbound_domain"?: string | null;
+  "inbound_spam_threshold"?: number | null;
+  "attachment_delivery"?: AttachmentDelivery | null;
 }
 
 export interface StoreSuppressionData {
@@ -538,6 +545,9 @@ export interface UpdateRouteData {
   "name"?: string | null;
   "settings"?: UpdateRouteSettingsData | null;
   "inbound_settings"?: UpdateRouteInboundSettingsData | null;
+  "inbound_domain"?: string | null;
+  "inbound_spam_threshold"?: number | null;
+  "attachment_delivery"?: AttachmentDelivery | null;
 }
 
 export interface UpdateRouteInboundSettingsData {
@@ -558,7 +568,7 @@ export interface UpdateRouteSettingsData {
 }
 
 export interface UpdateTeamData {
-  "name"?: string | null;
+  "name"?: string;
 }
 
 export interface UpdateTeamMemberAssignmentData {
@@ -627,6 +637,7 @@ export interface WebhookDeliveryListData {
   "source_project_id": string | null;
   "source_route_id": string | null;
   "status": WebhookDeliveryStatus;
+  "sandbox": boolean;
   "attempt_number": number;
   "http_status_code": number | null;
   "duration_ms": number | null;
@@ -641,13 +652,14 @@ export type WebhookEvent = "message.created" | "message.sent" | "message.deliver
 export interface WebhookListData {
   "id": string;
   "scope": WebhookScope;
-  "project_ids": string[];
-  "route_ids": string[];
+  "project_ids": (string)[];
+  "route_ids": (string)[];
   "route_id": string | null;
   "name": string;
   "url": string;
-  "events": string[];
+  "events": (string)[];
   "enabled": boolean;
+  "delivery_mode_filter": WebhookDeliveryModeFilter;
   "last_called_at": string | null;
   "created_at": string;
   "updated_at": string;
@@ -680,18 +692,14 @@ export type WebhookDeliveryModeFilter = "live" | "sandbox" | "both";
 export type EmailPayload = SendMailRequest;
 export type SendEmailResponse = SendMailResponse;
 export type SendBatchEmailResponse = SendBatchMailResponse;
-export type SendMailResponse = {
-  "message_id": string | null;
-  "status": MessageStatus;
-  "scheduled_at": string;
+export interface SendMailResponse {
+  "message_id": string;
+  "status": "pending" | "scheduled";
   "sandbox"?: true;
   "sandbox_result"?: SandboxResult;
-} | {
-  "message_id": string | null;
-  "status": MessageStatus;
-  "sandbox"?: true;
-  "sandbox_result"?: SandboxResult;
-};
+  "scheduled_at"?: string;
+}
+
 export type SendBatchMailResponse = {
   "message_id": string;
   "status": MessageStatus;
@@ -699,7 +707,7 @@ export type SendBatchMailResponse = {
   "sandbox"?: true;
   "sandbox_result"?: SandboxResult;
 }[];
-export type PingResponse = 200;
+export type PingResponse = string;
 export type DomainIndexResponse = {
   "data": DomainListData[];
   "path": string | null;
@@ -787,11 +795,12 @@ export type ProjectIndexResponse = {
   "prev_page_url": string | null;
 };
 export type ProjectStoreRequest = StoreProjectData;
-export type ProjectStoreResponse = {
+export interface ProjectStoreResponse {
   "data": ProjectData;
-  "message": "Project created successfully.";
-  "api_token": string;
-};
+  "message": string;
+  "api_token"?: string;
+}
+
 export type ProjectShowResponse = ProjectData;
 export type ProjectUpdateRequest = UpdateProjectData;
 export type ProjectUpdateResponse = {
@@ -829,22 +838,24 @@ export type RouteUpdateResponse = {
 export type RouteDestroyResponse = {
   "message": "Route deleted successfully.";
 };
-export type RouteVerifyInboundDomainResponse = {
+export interface RouteVerifyInboundDomainResponse {
   "data": {
-  "verified": boolean;
+  "verified": true;
   "message": "Inbound domain verified successfully.";
 };
-};
+}
+
 export type StatsIndexResponse = StatsData;
-export type SuppressionIndexResponse = {
-  "data": SuppressedRecipientData[];
-  "path": string | null;
+export interface SuppressionIndexResponse {
+  "data": (SuppressedRecipientData)[];
+  "path": string;
   "per_page": number;
   "next_cursor": string | null;
   "next_page_url": string | null;
   "prev_cursor": string | null;
   "prev_page_url": string | null;
-};
+}
+
 export type SuppressionStoreRequest = StoreSuppressionData;
 export type SuppressionStoreResponse = {
   "message": string | "No emails were added.";
@@ -853,12 +864,14 @@ export type SuppressionStoreResponse = {
   "skipped": string[];
 };
 };
-export type SuppressionDestroyResponse = {
-  "success": boolean;
-  "status": "removed";
+export interface SuppressionDestroyResponse {
+  "success": true;
+  "status": "removed" | "review_ticket_created" | "review_ticket_exists";
   "message": string;
   "confidence"?: number;
-};
+  "ticket_identifier"?: string;
+}
+
 export type TeamShowResponse = TeamData;
 export type TeamUpdateRequest = UpdateTeamData;
 export type TeamUpdateResponse = {
@@ -922,3 +935,940 @@ export type WebhookDeliveriesResponse = {
   "prev_page_url": string | null;
 };
 export type WebhookShowDeliveryResponse = WebhookDeliveryData;
+
+export interface AnalyticsResponseData {
+  "data": Record<string, unknown>;
+  "meta": Record<string, unknown>;
+  "pagination": (string)[];
+}
+
+export interface ProjectCreatedData {
+  "data": ProjectData;
+  "message": string;
+  "api_token"?: string;
+}
+
+export interface ReportForwardingRequest {
+  "destination": string;
+}
+
+export interface ReportForwardingResource {
+  "destination": string | null;
+  "verified": boolean;
+  "verified_at": string | null;
+}
+
+export interface VerifyReportForwardingRequest {
+  "code": string;
+}
+
+export interface AnalyticsRequest {
+  "metrics": ("accepted" | "processed" | "suppressed" | "policy_rejected" | "application_failed" | "mta_accepted" | "canceled" | "messages" | "delivered" | "bounced" | "soft_bounced" | "administratively_bounced" | "deferred_recipients" | "deferred_events" | "delivery_attempts" | "attempted_recipients" | "transport_outcome_recipients" | "effective_delivered" | "open_tracked_delivered" | "click_tracked_delivered" | "out_of_band_bounced_recipients" | "out_of_band_bounce_events" | "complained" | "unsubscribed" | "human_opens" | "human_opens_events" | "human_clicks" | "human_clicks_events" | "machine_opens" | "machine_opens_events" | "machine_clicks" | "machine_clicks_events" | "privacy_opens" | "privacy_opens_events" | "privacy_clicks" | "privacy_clicks_events" | "bot_opens" | "bot_opens_events" | "bot_clicks" | "bot_clicks_events" | "scanner_opens" | "scanner_opens_events" | "scanner_clicks" | "scanner_clicks_events" | "observed_opens" | "observed_opens_events" | "observed_clicks" | "observed_clicks_events" | "delivery_rate" | "effective_delivery_rate" | "bounce_rate" | "deferral_rate" | "complaint_rate" | "human_open_rate" | "human_click_rate" | "processing_latency_p50_ms" | "processing_latency_p95_ms" | "processing_latency_p99_ms" | "processing_latency_samples" | "delivery_latency_p50_ms" | "delivery_latency_p95_ms" | "delivery_latency_p99_ms" | "delivery_latency_samples" | "total_latency_p50_ms" | "total_latency_p95_ms" | "total_latency_p99_ms" | "total_latency_samples")[];
+  "from"?: string;
+  "to"?: string;
+  "timezone"?: string;
+  "include"?: ("summary" | "time_series" | "breakdown")[];
+  "group_by"?: (string)[];
+  "filters"?: ({
+  "dimension": string;
+  "operator": "eq" | "in" | "not_in" | "is_null" | "is_not_null";
+  "values"?: (string)[];
+})[];
+  "interval"?: "hour" | "day";
+  "compare"?: "previous_period";
+  "include_trend"?: boolean;
+  "sort"?: {
+  "metric": "accepted" | "processed" | "suppressed" | "policy_rejected" | "application_failed" | "mta_accepted" | "canceled" | "messages" | "delivered" | "bounced" | "soft_bounced" | "administratively_bounced" | "deferred_recipients" | "deferred_events" | "delivery_attempts" | "attempted_recipients" | "transport_outcome_recipients" | "effective_delivered" | "open_tracked_delivered" | "click_tracked_delivered" | "out_of_band_bounced_recipients" | "out_of_band_bounce_events" | "complained" | "unsubscribed" | "human_opens" | "human_opens_events" | "human_clicks" | "human_clicks_events" | "machine_opens" | "machine_opens_events" | "machine_clicks" | "machine_clicks_events" | "privacy_opens" | "privacy_opens_events" | "privacy_clicks" | "privacy_clicks_events" | "bot_opens" | "bot_opens_events" | "bot_clicks" | "bot_clicks_events" | "scanner_opens" | "scanner_opens_events" | "scanner_clicks" | "scanner_clicks_events" | "observed_opens" | "observed_opens_events" | "observed_clicks" | "observed_clicks_events" | "delivery_rate" | "effective_delivery_rate" | "bounce_rate" | "deferral_rate" | "complaint_rate" | "human_open_rate" | "human_click_rate" | "processing_latency_p50_ms" | "processing_latency_p95_ms" | "processing_latency_p99_ms" | "processing_latency_samples" | "delivery_latency_p50_ms" | "delivery_latency_p95_ms" | "delivery_latency_p99_ms" | "delivery_latency_samples" | "total_latency_p50_ms" | "total_latency_p95_ms" | "total_latency_p99_ms" | "total_latency_samples";
+  "direction": "asc" | "desc";
+};
+  "limit"?: number;
+  "cursor"?: string;
+}
+
+export type UpdateReportForwardingRequest = ReportForwardingRequest;
+
+export interface AnalyticsResponse {
+  "data": {
+  "summary"?: {
+  "metrics"?: {
+  "accepted"?: number | null;
+  "processed"?: number | null;
+  "suppressed"?: number | null;
+  "policy_rejected"?: number | null;
+  "application_failed"?: number | null;
+  "mta_accepted"?: number | null;
+  "canceled"?: number | null;
+  "messages"?: number | null;
+  "delivered"?: number | null;
+  "bounced"?: number | null;
+  "soft_bounced"?: number | null;
+  "administratively_bounced"?: number | null;
+  "deferred_recipients"?: number | null;
+  "deferred_events"?: number | null;
+  "delivery_attempts"?: number | null;
+  "attempted_recipients"?: number | null;
+  "transport_outcome_recipients"?: number | null;
+  "effective_delivered"?: number | null;
+  "open_tracked_delivered"?: number | null;
+  "click_tracked_delivered"?: number | null;
+  "out_of_band_bounced_recipients"?: number | null;
+  "out_of_band_bounce_events"?: number | null;
+  "complained"?: number | null;
+  "unsubscribed"?: number | null;
+  "human_opens"?: number | null;
+  "human_opens_events"?: number | null;
+  "human_clicks"?: number | null;
+  "human_clicks_events"?: number | null;
+  "machine_opens"?: number | null;
+  "machine_opens_events"?: number | null;
+  "machine_clicks"?: number | null;
+  "machine_clicks_events"?: number | null;
+  "privacy_opens"?: number | null;
+  "privacy_opens_events"?: number | null;
+  "privacy_clicks"?: number | null;
+  "privacy_clicks_events"?: number | null;
+  "bot_opens"?: number | null;
+  "bot_opens_events"?: number | null;
+  "bot_clicks"?: number | null;
+  "bot_clicks_events"?: number | null;
+  "scanner_opens"?: number | null;
+  "scanner_opens_events"?: number | null;
+  "scanner_clicks"?: number | null;
+  "scanner_clicks_events"?: number | null;
+  "observed_opens"?: number | null;
+  "observed_opens_events"?: number | null;
+  "observed_clicks"?: number | null;
+  "observed_clicks_events"?: number | null;
+  "delivery_rate"?: number | null;
+  "effective_delivery_rate"?: number | null;
+  "bounce_rate"?: number | null;
+  "deferral_rate"?: number | null;
+  "complaint_rate"?: number | null;
+  "human_open_rate"?: number | null;
+  "human_click_rate"?: number | null;
+  "processing_latency_p50_ms"?: number | null;
+  "processing_latency_p95_ms"?: number | null;
+  "processing_latency_p99_ms"?: number | null;
+  "processing_latency_samples"?: number | null;
+  "delivery_latency_p50_ms"?: number | null;
+  "delivery_latency_p95_ms"?: number | null;
+  "delivery_latency_p99_ms"?: number | null;
+  "delivery_latency_samples"?: number | null;
+  "total_latency_p50_ms"?: number | null;
+  "total_latency_p95_ms"?: number | null;
+  "total_latency_p99_ms"?: number | null;
+  "total_latency_samples"?: number | null;
+};
+  "rate_bases"?: {
+  "delivery_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "effective_delivery_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "bounce_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "deferral_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "complaint_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "human_open_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "human_click_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+};
+  "previous"?: {
+  "metrics": {
+  "accepted"?: number | null;
+  "processed"?: number | null;
+  "suppressed"?: number | null;
+  "policy_rejected"?: number | null;
+  "application_failed"?: number | null;
+  "mta_accepted"?: number | null;
+  "canceled"?: number | null;
+  "messages"?: number | null;
+  "delivered"?: number | null;
+  "bounced"?: number | null;
+  "soft_bounced"?: number | null;
+  "administratively_bounced"?: number | null;
+  "deferred_recipients"?: number | null;
+  "deferred_events"?: number | null;
+  "delivery_attempts"?: number | null;
+  "attempted_recipients"?: number | null;
+  "transport_outcome_recipients"?: number | null;
+  "effective_delivered"?: number | null;
+  "open_tracked_delivered"?: number | null;
+  "click_tracked_delivered"?: number | null;
+  "out_of_band_bounced_recipients"?: number | null;
+  "out_of_band_bounce_events"?: number | null;
+  "complained"?: number | null;
+  "unsubscribed"?: number | null;
+  "human_opens"?: number | null;
+  "human_opens_events"?: number | null;
+  "human_clicks"?: number | null;
+  "human_clicks_events"?: number | null;
+  "machine_opens"?: number | null;
+  "machine_opens_events"?: number | null;
+  "machine_clicks"?: number | null;
+  "machine_clicks_events"?: number | null;
+  "privacy_opens"?: number | null;
+  "privacy_opens_events"?: number | null;
+  "privacy_clicks"?: number | null;
+  "privacy_clicks_events"?: number | null;
+  "bot_opens"?: number | null;
+  "bot_opens_events"?: number | null;
+  "bot_clicks"?: number | null;
+  "bot_clicks_events"?: number | null;
+  "scanner_opens"?: number | null;
+  "scanner_opens_events"?: number | null;
+  "scanner_clicks"?: number | null;
+  "scanner_clicks_events"?: number | null;
+  "observed_opens"?: number | null;
+  "observed_opens_events"?: number | null;
+  "observed_clicks"?: number | null;
+  "observed_clicks_events"?: number | null;
+  "delivery_rate"?: number | null;
+  "effective_delivery_rate"?: number | null;
+  "bounce_rate"?: number | null;
+  "deferral_rate"?: number | null;
+  "complaint_rate"?: number | null;
+  "human_open_rate"?: number | null;
+  "human_click_rate"?: number | null;
+  "processing_latency_p50_ms"?: number | null;
+  "processing_latency_p95_ms"?: number | null;
+  "processing_latency_p99_ms"?: number | null;
+  "processing_latency_samples"?: number | null;
+  "delivery_latency_p50_ms"?: number | null;
+  "delivery_latency_p95_ms"?: number | null;
+  "delivery_latency_p99_ms"?: number | null;
+  "delivery_latency_samples"?: number | null;
+  "total_latency_p50_ms"?: number | null;
+  "total_latency_p95_ms"?: number | null;
+  "total_latency_p99_ms"?: number | null;
+  "total_latency_samples"?: number | null;
+};
+  "rate_bases": {
+  "delivery_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "effective_delivery_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "bounce_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "deferral_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "complaint_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "human_open_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "human_click_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+};
+};
+  "change"?: Record<string, {
+  "absolute"?: number | null;
+  "relative"?: number | null;
+  "percentage_points"?: number | null;
+}>;
+};
+  "time_series"?: ({
+  "metrics": {
+  "accepted"?: number | null;
+  "processed"?: number | null;
+  "suppressed"?: number | null;
+  "policy_rejected"?: number | null;
+  "application_failed"?: number | null;
+  "mta_accepted"?: number | null;
+  "canceled"?: number | null;
+  "messages"?: number | null;
+  "delivered"?: number | null;
+  "bounced"?: number | null;
+  "soft_bounced"?: number | null;
+  "administratively_bounced"?: number | null;
+  "deferred_recipients"?: number | null;
+  "deferred_events"?: number | null;
+  "delivery_attempts"?: number | null;
+  "attempted_recipients"?: number | null;
+  "transport_outcome_recipients"?: number | null;
+  "effective_delivered"?: number | null;
+  "open_tracked_delivered"?: number | null;
+  "click_tracked_delivered"?: number | null;
+  "out_of_band_bounced_recipients"?: number | null;
+  "out_of_band_bounce_events"?: number | null;
+  "complained"?: number | null;
+  "unsubscribed"?: number | null;
+  "human_opens"?: number | null;
+  "human_opens_events"?: number | null;
+  "human_clicks"?: number | null;
+  "human_clicks_events"?: number | null;
+  "machine_opens"?: number | null;
+  "machine_opens_events"?: number | null;
+  "machine_clicks"?: number | null;
+  "machine_clicks_events"?: number | null;
+  "privacy_opens"?: number | null;
+  "privacy_opens_events"?: number | null;
+  "privacy_clicks"?: number | null;
+  "privacy_clicks_events"?: number | null;
+  "bot_opens"?: number | null;
+  "bot_opens_events"?: number | null;
+  "bot_clicks"?: number | null;
+  "bot_clicks_events"?: number | null;
+  "scanner_opens"?: number | null;
+  "scanner_opens_events"?: number | null;
+  "scanner_clicks"?: number | null;
+  "scanner_clicks_events"?: number | null;
+  "observed_opens"?: number | null;
+  "observed_opens_events"?: number | null;
+  "observed_clicks"?: number | null;
+  "observed_clicks_events"?: number | null;
+  "delivery_rate"?: number | null;
+  "effective_delivery_rate"?: number | null;
+  "bounce_rate"?: number | null;
+  "deferral_rate"?: number | null;
+  "complaint_rate"?: number | null;
+  "human_open_rate"?: number | null;
+  "human_click_rate"?: number | null;
+  "processing_latency_p50_ms"?: number | null;
+  "processing_latency_p95_ms"?: number | null;
+  "processing_latency_p99_ms"?: number | null;
+  "processing_latency_samples"?: number | null;
+  "delivery_latency_p50_ms"?: number | null;
+  "delivery_latency_p95_ms"?: number | null;
+  "delivery_latency_p99_ms"?: number | null;
+  "delivery_latency_samples"?: number | null;
+  "total_latency_p50_ms"?: number | null;
+  "total_latency_p95_ms"?: number | null;
+  "total_latency_p99_ms"?: number | null;
+  "total_latency_samples"?: number | null;
+};
+  "rate_bases": {
+  "delivery_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "effective_delivery_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "bounce_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "deferral_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "complaint_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "human_open_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "human_click_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+};
+  "previous"?: {
+  "metrics": {
+  "accepted"?: number | null;
+  "processed"?: number | null;
+  "suppressed"?: number | null;
+  "policy_rejected"?: number | null;
+  "application_failed"?: number | null;
+  "mta_accepted"?: number | null;
+  "canceled"?: number | null;
+  "messages"?: number | null;
+  "delivered"?: number | null;
+  "bounced"?: number | null;
+  "soft_bounced"?: number | null;
+  "administratively_bounced"?: number | null;
+  "deferred_recipients"?: number | null;
+  "deferred_events"?: number | null;
+  "delivery_attempts"?: number | null;
+  "attempted_recipients"?: number | null;
+  "transport_outcome_recipients"?: number | null;
+  "effective_delivered"?: number | null;
+  "open_tracked_delivered"?: number | null;
+  "click_tracked_delivered"?: number | null;
+  "out_of_band_bounced_recipients"?: number | null;
+  "out_of_band_bounce_events"?: number | null;
+  "complained"?: number | null;
+  "unsubscribed"?: number | null;
+  "human_opens"?: number | null;
+  "human_opens_events"?: number | null;
+  "human_clicks"?: number | null;
+  "human_clicks_events"?: number | null;
+  "machine_opens"?: number | null;
+  "machine_opens_events"?: number | null;
+  "machine_clicks"?: number | null;
+  "machine_clicks_events"?: number | null;
+  "privacy_opens"?: number | null;
+  "privacy_opens_events"?: number | null;
+  "privacy_clicks"?: number | null;
+  "privacy_clicks_events"?: number | null;
+  "bot_opens"?: number | null;
+  "bot_opens_events"?: number | null;
+  "bot_clicks"?: number | null;
+  "bot_clicks_events"?: number | null;
+  "scanner_opens"?: number | null;
+  "scanner_opens_events"?: number | null;
+  "scanner_clicks"?: number | null;
+  "scanner_clicks_events"?: number | null;
+  "observed_opens"?: number | null;
+  "observed_opens_events"?: number | null;
+  "observed_clicks"?: number | null;
+  "observed_clicks_events"?: number | null;
+  "delivery_rate"?: number | null;
+  "effective_delivery_rate"?: number | null;
+  "bounce_rate"?: number | null;
+  "deferral_rate"?: number | null;
+  "complaint_rate"?: number | null;
+  "human_open_rate"?: number | null;
+  "human_click_rate"?: number | null;
+  "processing_latency_p50_ms"?: number | null;
+  "processing_latency_p95_ms"?: number | null;
+  "processing_latency_p99_ms"?: number | null;
+  "processing_latency_samples"?: number | null;
+  "delivery_latency_p50_ms"?: number | null;
+  "delivery_latency_p95_ms"?: number | null;
+  "delivery_latency_p99_ms"?: number | null;
+  "delivery_latency_samples"?: number | null;
+  "total_latency_p50_ms"?: number | null;
+  "total_latency_p95_ms"?: number | null;
+  "total_latency_p99_ms"?: number | null;
+  "total_latency_samples"?: number | null;
+};
+  "rate_bases": {
+  "delivery_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "effective_delivery_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "bounce_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "deferral_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "complaint_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "human_open_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "human_click_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+};
+};
+  "change"?: Record<string, {
+  "absolute"?: number | null;
+  "relative"?: number | null;
+  "percentage_points"?: number | null;
+}>;
+  "from": string;
+  "to": string;
+  "available": boolean;
+  "partial": boolean;
+})[];
+  "breakdown"?: ({
+  "metrics": {
+  "accepted"?: number | null;
+  "processed"?: number | null;
+  "suppressed"?: number | null;
+  "policy_rejected"?: number | null;
+  "application_failed"?: number | null;
+  "mta_accepted"?: number | null;
+  "canceled"?: number | null;
+  "messages"?: number | null;
+  "delivered"?: number | null;
+  "bounced"?: number | null;
+  "soft_bounced"?: number | null;
+  "administratively_bounced"?: number | null;
+  "deferred_recipients"?: number | null;
+  "deferred_events"?: number | null;
+  "delivery_attempts"?: number | null;
+  "attempted_recipients"?: number | null;
+  "transport_outcome_recipients"?: number | null;
+  "effective_delivered"?: number | null;
+  "open_tracked_delivered"?: number | null;
+  "click_tracked_delivered"?: number | null;
+  "out_of_band_bounced_recipients"?: number | null;
+  "out_of_band_bounce_events"?: number | null;
+  "complained"?: number | null;
+  "unsubscribed"?: number | null;
+  "human_opens"?: number | null;
+  "human_opens_events"?: number | null;
+  "human_clicks"?: number | null;
+  "human_clicks_events"?: number | null;
+  "machine_opens"?: number | null;
+  "machine_opens_events"?: number | null;
+  "machine_clicks"?: number | null;
+  "machine_clicks_events"?: number | null;
+  "privacy_opens"?: number | null;
+  "privacy_opens_events"?: number | null;
+  "privacy_clicks"?: number | null;
+  "privacy_clicks_events"?: number | null;
+  "bot_opens"?: number | null;
+  "bot_opens_events"?: number | null;
+  "bot_clicks"?: number | null;
+  "bot_clicks_events"?: number | null;
+  "scanner_opens"?: number | null;
+  "scanner_opens_events"?: number | null;
+  "scanner_clicks"?: number | null;
+  "scanner_clicks_events"?: number | null;
+  "observed_opens"?: number | null;
+  "observed_opens_events"?: number | null;
+  "observed_clicks"?: number | null;
+  "observed_clicks_events"?: number | null;
+  "delivery_rate"?: number | null;
+  "effective_delivery_rate"?: number | null;
+  "bounce_rate"?: number | null;
+  "deferral_rate"?: number | null;
+  "complaint_rate"?: number | null;
+  "human_open_rate"?: number | null;
+  "human_click_rate"?: number | null;
+  "processing_latency_p50_ms"?: number | null;
+  "processing_latency_p95_ms"?: number | null;
+  "processing_latency_p99_ms"?: number | null;
+  "processing_latency_samples"?: number | null;
+  "delivery_latency_p50_ms"?: number | null;
+  "delivery_latency_p95_ms"?: number | null;
+  "delivery_latency_p99_ms"?: number | null;
+  "delivery_latency_samples"?: number | null;
+  "total_latency_p50_ms"?: number | null;
+  "total_latency_p95_ms"?: number | null;
+  "total_latency_p99_ms"?: number | null;
+  "total_latency_samples"?: number | null;
+};
+  "rate_bases": {
+  "delivery_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "effective_delivery_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "bounce_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "deferral_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "complaint_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "human_open_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "human_click_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+};
+  "previous"?: {
+  "metrics": {
+  "accepted"?: number | null;
+  "processed"?: number | null;
+  "suppressed"?: number | null;
+  "policy_rejected"?: number | null;
+  "application_failed"?: number | null;
+  "mta_accepted"?: number | null;
+  "canceled"?: number | null;
+  "messages"?: number | null;
+  "delivered"?: number | null;
+  "bounced"?: number | null;
+  "soft_bounced"?: number | null;
+  "administratively_bounced"?: number | null;
+  "deferred_recipients"?: number | null;
+  "deferred_events"?: number | null;
+  "delivery_attempts"?: number | null;
+  "attempted_recipients"?: number | null;
+  "transport_outcome_recipients"?: number | null;
+  "effective_delivered"?: number | null;
+  "open_tracked_delivered"?: number | null;
+  "click_tracked_delivered"?: number | null;
+  "out_of_band_bounced_recipients"?: number | null;
+  "out_of_band_bounce_events"?: number | null;
+  "complained"?: number | null;
+  "unsubscribed"?: number | null;
+  "human_opens"?: number | null;
+  "human_opens_events"?: number | null;
+  "human_clicks"?: number | null;
+  "human_clicks_events"?: number | null;
+  "machine_opens"?: number | null;
+  "machine_opens_events"?: number | null;
+  "machine_clicks"?: number | null;
+  "machine_clicks_events"?: number | null;
+  "privacy_opens"?: number | null;
+  "privacy_opens_events"?: number | null;
+  "privacy_clicks"?: number | null;
+  "privacy_clicks_events"?: number | null;
+  "bot_opens"?: number | null;
+  "bot_opens_events"?: number | null;
+  "bot_clicks"?: number | null;
+  "bot_clicks_events"?: number | null;
+  "scanner_opens"?: number | null;
+  "scanner_opens_events"?: number | null;
+  "scanner_clicks"?: number | null;
+  "scanner_clicks_events"?: number | null;
+  "observed_opens"?: number | null;
+  "observed_opens_events"?: number | null;
+  "observed_clicks"?: number | null;
+  "observed_clicks_events"?: number | null;
+  "delivery_rate"?: number | null;
+  "effective_delivery_rate"?: number | null;
+  "bounce_rate"?: number | null;
+  "deferral_rate"?: number | null;
+  "complaint_rate"?: number | null;
+  "human_open_rate"?: number | null;
+  "human_click_rate"?: number | null;
+  "processing_latency_p50_ms"?: number | null;
+  "processing_latency_p95_ms"?: number | null;
+  "processing_latency_p99_ms"?: number | null;
+  "processing_latency_samples"?: number | null;
+  "delivery_latency_p50_ms"?: number | null;
+  "delivery_latency_p95_ms"?: number | null;
+  "delivery_latency_p99_ms"?: number | null;
+  "delivery_latency_samples"?: number | null;
+  "total_latency_p50_ms"?: number | null;
+  "total_latency_p95_ms"?: number | null;
+  "total_latency_p99_ms"?: number | null;
+  "total_latency_samples"?: number | null;
+};
+  "rate_bases": {
+  "delivery_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "effective_delivery_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "bounce_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "deferral_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "complaint_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "human_open_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "human_click_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+};
+};
+  "change"?: Record<string, {
+  "absolute"?: number | null;
+  "relative"?: number | null;
+  "percentage_points"?: number | null;
+}>;
+  "dimensions": Record<string, string | null>;
+  "trend"?: ({
+  "metrics": {
+  "accepted"?: number | null;
+  "processed"?: number | null;
+  "suppressed"?: number | null;
+  "policy_rejected"?: number | null;
+  "application_failed"?: number | null;
+  "mta_accepted"?: number | null;
+  "canceled"?: number | null;
+  "messages"?: number | null;
+  "delivered"?: number | null;
+  "bounced"?: number | null;
+  "soft_bounced"?: number | null;
+  "administratively_bounced"?: number | null;
+  "deferred_recipients"?: number | null;
+  "deferred_events"?: number | null;
+  "delivery_attempts"?: number | null;
+  "attempted_recipients"?: number | null;
+  "transport_outcome_recipients"?: number | null;
+  "effective_delivered"?: number | null;
+  "open_tracked_delivered"?: number | null;
+  "click_tracked_delivered"?: number | null;
+  "out_of_band_bounced_recipients"?: number | null;
+  "out_of_band_bounce_events"?: number | null;
+  "complained"?: number | null;
+  "unsubscribed"?: number | null;
+  "human_opens"?: number | null;
+  "human_opens_events"?: number | null;
+  "human_clicks"?: number | null;
+  "human_clicks_events"?: number | null;
+  "machine_opens"?: number | null;
+  "machine_opens_events"?: number | null;
+  "machine_clicks"?: number | null;
+  "machine_clicks_events"?: number | null;
+  "privacy_opens"?: number | null;
+  "privacy_opens_events"?: number | null;
+  "privacy_clicks"?: number | null;
+  "privacy_clicks_events"?: number | null;
+  "bot_opens"?: number | null;
+  "bot_opens_events"?: number | null;
+  "bot_clicks"?: number | null;
+  "bot_clicks_events"?: number | null;
+  "scanner_opens"?: number | null;
+  "scanner_opens_events"?: number | null;
+  "scanner_clicks"?: number | null;
+  "scanner_clicks_events"?: number | null;
+  "observed_opens"?: number | null;
+  "observed_opens_events"?: number | null;
+  "observed_clicks"?: number | null;
+  "observed_clicks_events"?: number | null;
+  "delivery_rate"?: number | null;
+  "effective_delivery_rate"?: number | null;
+  "bounce_rate"?: number | null;
+  "deferral_rate"?: number | null;
+  "complaint_rate"?: number | null;
+  "human_open_rate"?: number | null;
+  "human_click_rate"?: number | null;
+  "processing_latency_p50_ms"?: number | null;
+  "processing_latency_p95_ms"?: number | null;
+  "processing_latency_p99_ms"?: number | null;
+  "processing_latency_samples"?: number | null;
+  "delivery_latency_p50_ms"?: number | null;
+  "delivery_latency_p95_ms"?: number | null;
+  "delivery_latency_p99_ms"?: number | null;
+  "delivery_latency_samples"?: number | null;
+  "total_latency_p50_ms"?: number | null;
+  "total_latency_p95_ms"?: number | null;
+  "total_latency_p99_ms"?: number | null;
+  "total_latency_samples"?: number | null;
+};
+  "rate_bases": {
+  "delivery_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "effective_delivery_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "bounce_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "deferral_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "complaint_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "human_open_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "human_click_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+};
+  "previous"?: {
+  "metrics": {
+  "accepted"?: number | null;
+  "processed"?: number | null;
+  "suppressed"?: number | null;
+  "policy_rejected"?: number | null;
+  "application_failed"?: number | null;
+  "mta_accepted"?: number | null;
+  "canceled"?: number | null;
+  "messages"?: number | null;
+  "delivered"?: number | null;
+  "bounced"?: number | null;
+  "soft_bounced"?: number | null;
+  "administratively_bounced"?: number | null;
+  "deferred_recipients"?: number | null;
+  "deferred_events"?: number | null;
+  "delivery_attempts"?: number | null;
+  "attempted_recipients"?: number | null;
+  "transport_outcome_recipients"?: number | null;
+  "effective_delivered"?: number | null;
+  "open_tracked_delivered"?: number | null;
+  "click_tracked_delivered"?: number | null;
+  "out_of_band_bounced_recipients"?: number | null;
+  "out_of_band_bounce_events"?: number | null;
+  "complained"?: number | null;
+  "unsubscribed"?: number | null;
+  "human_opens"?: number | null;
+  "human_opens_events"?: number | null;
+  "human_clicks"?: number | null;
+  "human_clicks_events"?: number | null;
+  "machine_opens"?: number | null;
+  "machine_opens_events"?: number | null;
+  "machine_clicks"?: number | null;
+  "machine_clicks_events"?: number | null;
+  "privacy_opens"?: number | null;
+  "privacy_opens_events"?: number | null;
+  "privacy_clicks"?: number | null;
+  "privacy_clicks_events"?: number | null;
+  "bot_opens"?: number | null;
+  "bot_opens_events"?: number | null;
+  "bot_clicks"?: number | null;
+  "bot_clicks_events"?: number | null;
+  "scanner_opens"?: number | null;
+  "scanner_opens_events"?: number | null;
+  "scanner_clicks"?: number | null;
+  "scanner_clicks_events"?: number | null;
+  "observed_opens"?: number | null;
+  "observed_opens_events"?: number | null;
+  "observed_clicks"?: number | null;
+  "observed_clicks_events"?: number | null;
+  "delivery_rate"?: number | null;
+  "effective_delivery_rate"?: number | null;
+  "bounce_rate"?: number | null;
+  "deferral_rate"?: number | null;
+  "complaint_rate"?: number | null;
+  "human_open_rate"?: number | null;
+  "human_click_rate"?: number | null;
+  "processing_latency_p50_ms"?: number | null;
+  "processing_latency_p95_ms"?: number | null;
+  "processing_latency_p99_ms"?: number | null;
+  "processing_latency_samples"?: number | null;
+  "delivery_latency_p50_ms"?: number | null;
+  "delivery_latency_p95_ms"?: number | null;
+  "delivery_latency_p99_ms"?: number | null;
+  "delivery_latency_samples"?: number | null;
+  "total_latency_p50_ms"?: number | null;
+  "total_latency_p95_ms"?: number | null;
+  "total_latency_p99_ms"?: number | null;
+  "total_latency_samples"?: number | null;
+};
+  "rate_bases": {
+  "delivery_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "effective_delivery_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "bounce_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "deferral_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "complaint_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "human_open_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+  "human_click_rate"?: {
+  "numerator": number | null;
+  "denominator": number | null;
+};
+};
+};
+  "change"?: Record<string, {
+  "absolute"?: number | null;
+  "relative"?: number | null;
+  "percentage_points"?: number | null;
+}>;
+  "from": string;
+  "to": string;
+  "available": boolean;
+  "partial": boolean;
+})[];
+})[];
+};
+  "meta": {
+  "time_basis"?: "event";
+  "timezone"?: string;
+  "interval"?: "hour" | "day";
+  "from"?: string;
+  "to"?: string;
+  "effective_to"?: string;
+  "alignment"?: "hour" | "day";
+  "generated_at"?: string;
+  "available_since"?: string;
+  "partial"?: boolean;
+  "ongoing"?: boolean;
+  "collection_completeness"?: "best_effort";
+  "last_ingested_at"?: string | null;
+  "metric_definition_version"?: string;
+  "ranked_group_limit"?: number;
+  "comparison"?: {
+  "from": string;
+  "to": string;
+  "partial": boolean;
+};
+};
+  "pagination": {
+  "total_groups": number;
+  "returned_groups": number;
+  "next_cursor": string | null;
+  "truncated": boolean;
+};
+}
+
+export interface GetReportForwardingResponse {
+  "data": ReportForwardingResource;
+}
+
+export interface UpdateReportForwardingResponse {
+  "data": ReportForwardingResource;
+}
+
+export interface VerifyReportForwardingResponse {
+  "data": ReportForwardingResource;
+}
+
+export interface ResendReportForwardingCodeResponse {
+  "data": ReportForwardingResource;
+}

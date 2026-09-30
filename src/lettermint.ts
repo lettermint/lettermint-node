@@ -85,6 +85,10 @@ export class ApiClient {
   public async blockedFileTypes(): Promise<Types.BlockedFileTypesResponse> {
     return this.client.get('/blocked-file-types');
   }
+
+  public async analytics(payload: Types.AnalyticsRequest): Promise<Types.AnalyticsResponse> {
+    return this.client.post<Types.AnalyticsResponse>('/analytics', payload);
+  }
 }
 
 export default Lettermint;
