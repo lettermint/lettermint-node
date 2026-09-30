@@ -133,11 +133,14 @@ describe('public SDK surface', () => {
     expect(mockFetch).toHaveBeenNthCalledWith(
       3,
       'https://api.lettermint.co/v1/team/members/user%2Fid/assignment',
-      expect.objectContaining({ method: 'PUT', body: JSON.stringify(assignment) })
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify(assignment),
+      })
     );
   });
 
-  it('reschedules and cancels scheduled messages', async () => {
+  it('reschedules, cancels, and processes messages', async () => {
     const api = Lettermint.api('api-token');
     await api.messages.reschedule('message/id', { scheduled_at: '2026-08-27T09:00:00Z' });
     await api.messages.cancel('message/id');
@@ -221,6 +224,8 @@ describe('api endpoint coverage', () => {
   it('exposes documented API operations', () => {
     const api = Lettermint.api('api-token') as unknown as Record<string, unknown>;
 
+    expect(Object.keys(documentedMethods)).toHaveLength(50);
+
     for (const exposedPath of Object.values(documentedMethods)) {
       const segments = exposedPath.split('.');
       let cursor: unknown = api;
@@ -237,18 +242,17 @@ describe('api endpoint coverage', () => {
 
 describe('generated api types', () => {
   it('matches current Team API schema additions', () => {
-    const messageEvent: Types.MessageEventType = 'scheduled';
+    const messageEvent: Types.MessageEventType = 'auto_replied';
     const webhookEvent: Types.WebhookEvent = 'message.auto_replied';
     const builtInRole: Types.BuiltInTeamRole = 'admin';
     const suppression: Types.StoreSuppressionData = {
       reason: 'manual',
-      scope: 'global',
+      scope: 'team',
       emails: ['blocked@example.com'],
     };
     const routeSettings: Types.UpdateRouteSettingsData = {
       redact_email_content: true,
       generate_plaintext_fallback: false,
-      tls: 'enforced',
     };
     const routeInboundSettings: Types.UpdateRouteInboundSettingsData = {
       inbound_domain: 'inbound.example.com',
@@ -262,6 +266,7 @@ describe('generated api types', () => {
     const projectCreate: Types.StoreProjectData = {
       name: 'Production',
       short_token: true,
+      delivery_mode: 'sandbox',
     };
     const project: Types.ProjectData = {
       id: 'project_123',
@@ -274,9 +279,36 @@ describe('generated api types', () => {
       token_last_used_ip: null,
       created_at: '2026-06-28T00:00:00Z',
       updated_at: '2026-06-28T00:00:00Z',
+      delivery_mode: 'sandbox',
     };
     const projectUpdate: Types.UpdateProjectData = {
       redact_email_content: false,
+      delivery_mode: 'live',
+    };
+    const sendRequest: Types.SendMailRequest = {
+      from: 'sender@example.com',
+      to: ['recipient@example.com'],
+      subject: 'Sandbox test',
+      sandbox_result: 'clicked',
+    };
+    const sendResponse: Types.SendEmailResponse = {
+      message_id: 'message_123',
+      status: 'delivered',
+      sandbox: true,
+      sandbox_result: 'clicked',
+    };
+    const messageMode: Pick<Types.MessageData, 'delivery_mode' | 'sandbox_result'> = {
+      delivery_mode: 'sandbox',
+      sandbox_result: 'clicked',
+    };
+    const webhookCreate: Types.StoreWebhookData = {
+      name: 'Sandbox webhook',
+      url: 'https://example.com/webhooks',
+      events: ['message.delivered'],
+      delivery_mode_filter: 'both',
+    };
+    const webhookDelivery: Pick<Types.WebhookDeliveryData, 'sandbox'> = {
+      sandbox: true,
     };
     const blockedFileTypes: Types.BlockedFileTypesResponse = {
       extensions: ['exe'],
@@ -293,22 +325,29 @@ describe('generated api types', () => {
       role_id: 'role_123',
       project_access: { scope: 'selected', project_ids: ['project_123'] },
     };
-    const domain: Types.DomainData = {
-      id: 'domain_123',
-      domain: 'example.com',
-      dkim_mode: 'managed_cname',
-      rotation_ready: true,
-      status_changed_at: null,
-      created_at: '2026-08-12T00:00:00Z',
+    const messageTag: Types.MessageTag = { name: 'campaign', value: 'welcome' };
+    const cursorPaginator: Types.CursorPaginator = {
+      data: [],
+      path: null,
+      per_page: 25,
+      next_cursor: null,
+      next_page_url: null,
+      prev_cursor: null,
+      prev_page_url: null,
     };
-    const sourceMessage: Types.SuppressionSourceMessageData = {
-      id: 'msg_123',
-      available: true,
-      subject: 'Blocked',
-      created_at: '2026-08-12T00:00:00Z',
+    const rescheduleRequest: Types.RescheduleMessageRequest = {
+      scheduled_at: '2026-10-01T09:00:00Z',
     };
-    const spamScore: Types.MessageListData['spam_score'] = 2.5;
-    const scheduledAt: Types.SendMailRequest['scheduled_at'] = '2026-08-27T09:00:00Z';
+    const rescheduleResponse: Types.RescheduleMessageResponse = {
+      message_id: 'message_123',
+      status: 'scheduled',
+      scheduled_at: '2026-10-01T09:00:00Z',
+    };
+    const cancelResponse: Types.CancelScheduledMessageResponse = {
+      message_id: 'message_123',
+      status: 'canceled',
+      scheduled_at: null,
+    };
 
     expect({
       messageEvent,
@@ -319,13 +358,19 @@ describe('generated api types', () => {
       projectCreate,
       project,
       projectUpdate,
+      sendRequest,
+      sendResponse,
+      messageMode,
+      webhookCreate,
+      webhookDelivery,
       blockedFileTypes,
       teamRole,
       assignment,
-      domain,
-      sourceMessage,
-      spamScore,
-      scheduledAt,
+      messageTag,
+      cursorPaginator,
+      rescheduleRequest,
+      rescheduleResponse,
+      cancelResponse,
     }).toBeDefined();
   });
 });

@@ -57,7 +57,7 @@ export class MessagesEndpoint extends Endpoint {
     return this.httpClient.patch(`/messages/${this.pathSegment(messageId)}`, payload);
   }
 
-  public cancel(messageId: string): Promise<Types.RescheduleMessageResponse> {
+  public cancel(messageId: string): Promise<Types.CancelScheduledMessageResponse> {
     return this.httpClient.post(`/messages/${this.pathSegment(messageId)}/cancel`);
   }
 
