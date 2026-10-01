@@ -268,6 +268,7 @@ export interface RouteData {
   "is_default": boolean;
   "inbound_address"?: string | null;
   "inbound_mx_hostname"?: string;
+  "inbound_route_domain"?: string | null;
   "inbound_domain"?: string | null;
   "inbound_domain_verified_at"?: string | null;
   "inbound_spam_threshold"?: number | null;
