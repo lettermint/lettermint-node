@@ -83,6 +83,43 @@ export class MessagesEndpoint extends Endpoint {
 }
 
 export class ProjectsEndpoint extends Endpoint {
+  public async retrieveReportForwarding(
+    projectId: string
+  ): Promise<Types.GetReportForwardingResponse> {
+    return this.httpClient.get(`/projects/${this.pathSegment(projectId)}/report-forwarding`);
+  }
+
+  public async updateReportForwarding(
+    projectId: string,
+    payload: Types.UpdateReportForwardingRequest
+  ): Promise<Types.UpdateReportForwardingResponse> {
+    return this.httpClient.put(
+      `/projects/${this.pathSegment(projectId)}/report-forwarding`,
+      payload
+    );
+  }
+
+  public async deleteReportForwarding(projectId: string): Promise<void> {
+    await this.httpClient.delete(`/projects/${this.pathSegment(projectId)}/report-forwarding`);
+  }
+
+  public async verifyReportForwarding(
+    projectId: string,
+    payload: Types.VerifyReportForwardingRequest
+  ): Promise<Types.VerifyReportForwardingResponse> {
+    return this.httpClient.post(
+      `/projects/${this.pathSegment(projectId)}/report-forwarding/verify`,
+      payload
+    );
+  }
+
+  public async resendReportForwardingCode(
+    projectId: string
+  ): Promise<Types.ResendReportForwardingCodeResponse> {
+    return this.httpClient.post(
+      `/projects/${this.pathSegment(projectId)}/report-forwarding/resend-code`
+    );
+  }
   public list(params?: QueryParams): Promise<Types.ProjectIndexResponse> {
     return this.httpClient.get('/projects', { params });
   }

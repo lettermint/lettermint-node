@@ -169,6 +169,12 @@ describe('public SDK surface', () => {
 
 describe('api endpoint coverage', () => {
   const documentedMethods = {
+    'v1.analytics': 'analytics',
+    getReportForwarding: 'projects.retrieveReportForwarding',
+    updateReportForwarding: 'projects.updateReportForwarding',
+    deleteReportForwarding: 'projects.deleteReportForwarding',
+    verifyReportForwarding: 'projects.verifyReportForwarding',
+    resendReportForwardingCode: 'projects.resendReportForwardingCode',
     'domain.index': 'domains.list',
     'domain.store': 'domains.create',
     'domain.show': 'domains.retrieve',
@@ -224,7 +230,7 @@ describe('api endpoint coverage', () => {
   it('exposes documented API operations', () => {
     const api = Lettermint.api('api-token') as unknown as Record<string, unknown>;
 
-    expect(Object.keys(documentedMethods)).toHaveLength(50);
+    expect(Object.keys(documentedMethods)).toHaveLength(56);
 
     for (const exposedPath of Object.values(documentedMethods)) {
       const segments = exposedPath.split('.');
@@ -293,7 +299,7 @@ describe('generated api types', () => {
     };
     const sendResponse: Types.SendEmailResponse = {
       message_id: 'message_123',
-      status: 'delivered',
+      status: 'pending',
       sandbox: true,
       sandbox_result: 'clicked',
     };
