@@ -1,3 +1,5 @@
+import { resolve } from 'node:path';
+import ts from 'typescript';
 import { Lettermint } from './lettermint';
 import type { WebhookBasicAuthData, WebhookStoreRequest, WebhookUpdateRequest } from './types';
 
@@ -50,4 +52,52 @@ it('keeps the Free-plan Sandbox 403 response', async () => {
       .subject('Fixture')
       .send()
   ).rejects.toMatchObject({ statusCode: 403, responseBody: body });
+});
+
+it('proves that old typed webhook fixtures need the required safe flag', () => {
+  const filename = resolve(__dirname, '__old_webhook_caller__.ts');
+  const source = `import type { WebhookData, WebhookListData, WebhookSecretData } from './types';
+const legacy: Omit<WebhookData, 'has_basic_auth'> = {
+  id: 'fixture', scope: 'route', project_ids: [], route_ids: [], route_id: null,
+  name: 'Fixture', url: 'https://example.test/hook', events: [], enabled: true,
+  include_machine_events: false, last_called_at: null, created_at: '', updated_at: '',
+  delivery_mode_filter: 'both'
+};
+const detail: WebhookData = legacy;
+const list: WebhookListData = legacy;
+const secret: WebhookSecretData = { ...legacy, secret: 'synthetic-signing-secret' };
+`;
+  const compile = (text: string) => {
+    const options: ts.CompilerOptions = {
+      strict: true,
+      noEmit: true,
+      skipLibCheck: true,
+      types: [],
+      target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.CommonJS,
+    };
+    const host = ts.createCompilerHost(options);
+    const read = host.getSourceFile.bind(host);
+    host.getSourceFile = (path, languageVersion, ...args) =>
+      path === filename
+        ? ts.createSourceFile(path, text, languageVersion, true)
+        : read(path, languageVersion, ...args);
+    return ts.getPreEmitDiagnostics(ts.createProgram([filename], options, host));
+  };
+  const errors = compile(source);
+  expect(errors).toHaveLength(3);
+  for (const error of errors) {
+    expect(error.code).toBe(2741);
+    expect(ts.flattenDiagnosticMessageText(error.messageText, '\n')).toContain('has_basic_auth');
+  }
+  expect(
+    compile(
+      source
+        .replace(
+          "delivery_mode_filter: 'both'",
+          "delivery_mode_filter: 'both', has_basic_auth: false"
+        )
+        .replace("Omit<WebhookData, 'has_basic_auth'>", 'WebhookData')
+    )
+  ).toHaveLength(0);
 });
