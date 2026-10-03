@@ -426,6 +426,11 @@ export interface StoreSuppressionData {
   "applies_to"?: SuppressionAppliesTo | null;
 }
 
+export interface WebhookBasicAuthData {
+  "username": string;
+  "password": string;
+}
+
 export interface StoreWebhookData {
   "name": string;
   "url": string;
@@ -437,6 +442,7 @@ export interface StoreWebhookData {
   "route_ids"?: string[];
   "route_id"?: string | null;
   "delivery_mode_filter"?: WebhookDeliveryModeFilter | null;
+  basic_auth?: WebhookBasicAuthData | null;
 }
 
 export interface SuppressedRecipientData {
@@ -591,6 +597,7 @@ export interface UpdateWebhookData {
   "route_ids"?: string[];
   "route_id"?: string | null;
   "delivery_mode_filter"?: WebhookDeliveryModeFilter;
+  basic_auth?: WebhookBasicAuthData | null;
 }
 
 export interface WebhookData {
@@ -608,6 +615,7 @@ export interface WebhookData {
   "created_at": string;
   "updated_at": string;
   "delivery_mode_filter": WebhookDeliveryModeFilter;
+  has_basic_auth: boolean;
 }
 
 export interface WebhookDeliveryData {
@@ -664,6 +672,7 @@ export interface WebhookListData {
   "last_called_at": string | null;
   "created_at": string;
   "updated_at": string;
+  has_basic_auth: boolean;
 }
 
 export type WebhookScope = "team" | "project" | "route";
@@ -684,6 +693,7 @@ export interface WebhookSecretData {
   "created_at": string;
   "updated_at": string;
   "delivery_mode_filter": WebhookDeliveryModeFilter;
+  has_basic_auth: boolean;
 }
 
 export type DeliveryMode = "live" | "sandbox";
