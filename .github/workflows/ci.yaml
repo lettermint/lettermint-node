@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18, 20, 22, 23, 24]
+        node-version: [20, 22, 24]
 
     steps:
       - name: Checkout code
@@ -36,6 +36,10 @@ jobs:
 
       - name: Run type checking
         run: npm run type-check
+
+      # The generator is private, so CI only checks the generated-file headers.
+      - name: Check generated files
+        run: npm run generate:check
 
       - name: Run tests
         run: npm run test:coverage
@@ -75,6 +79,10 @@ jobs:
             echo "Build output directory 'dist' not found"
             exit 1
           fi
+
+      # Packs the package, installs the tarball and checks ESM, CJS and types.
+      - name: Smoke-test the package
+        run: npm run test:smoke
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
