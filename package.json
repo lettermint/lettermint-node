@@ -1,14 +1,13 @@
 {
   "name": "lettermint",
-  "version": "2.6.0",
-  "description": "Official Lettermint Node.js SDK",
+  "version": "3.0.0-dev",
+  "description": "Official Lettermint SDK for Node.js, Bun, Deno and edge runtimes",
   "type": "commonjs",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
       "import": {
         "types": "./dist/index.d.mts",
         "default": "./dist/index.mjs"
@@ -17,7 +16,8 @@
         "types": "./dist/index.d.ts",
         "default": "./dist/index.js"
       }
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -25,8 +25,14 @@
     "CHANGELOG.md",
     "UPGRADE.md"
   ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts --clean --minify --sourcemap",
+    "build": "tsup",
+    "generate": "node scripts/generate.mjs",
+    "generate:check": "node scripts/generate.mjs --check",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format .",
@@ -34,16 +40,19 @@
     "test": "jest",
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",
-    "type-check": "tsc --noEmit"
+    "test:smoke": "node scripts/smoke.mjs",
+    "type-check": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lettermint/lettermint-node.git"
   },
   "keywords": [
-    "Lettermint",
-    "Node",
-    "lettermint-node"
+    "lettermint",
+    "email",
+    "transactional email",
+    "sdk",
+    "webhooks"
   ],
   "author": "Bjarn Bronsveld",
   "license": "MIT",

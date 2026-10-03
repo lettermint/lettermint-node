@@ -1,15 +1,19 @@
 {
   "compilerOptions": {
-    "target": "es2018",
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
     "module": "commonjs",
-    "declaration": true,
-    "outDir": "./dist",
+    "moduleResolution": "node10",
+    "types": [],
     "strict": true,
+    "noEmit": true,
+    "declaration": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noImplicitOverride": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "include": ["src/**/*"]
 }
