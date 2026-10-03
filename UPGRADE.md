@@ -27,6 +27,30 @@
 - Node.js 20 or later (or Bun, Deno, Cloudflare Workers, Vercel Edge).
 - TypeScript users: the type declarations need `lib: ["dom"]` or `@types/node` 20+ for `fetch`, `Headers` and `AbortSignal`.
 
+## Upgrade with a coding agent
+
+You can let a coding agent (Claude Code, Codex, Cursor, Copilot, …) do the upgrade. Copy this instruction into the agent from your project's root, then review its changes:
+
+````text
+Upgrade this project from the `lettermint` Node.js SDK 2.x to 3.0.
+
+1. Install `lettermint@^3.0.0` with the project's package manager. 3.0 needs Node.js 20 or newer: check `engines`, CI workflows and Dockerfiles, and report anything older.
+2. Read the upgrade guide before changing code: `node_modules/lettermint/UPGRADE.md`, or https://github.com/lettermint/lettermint-node/blob/main/UPGRADE.md. Treat it as the source of truth and don't guess APIs; when unsure, read the type declarations in `node_modules/lettermint/dist/index.d.ts`.
+3. Find every use of the SDK: imports or requires of `lettermint`, `Lettermint.email(`, `Lettermint.api(`, `new Lettermint(`, `.sendBatch(`, `.idempotencyKey(`, `.attach(`, `Webhook`, `verifyHeaders(`, the 2.x error classes, and the 2.x type names from the guide's type-name table.
+4. Rewrite each use following the guide's before/after examples:
+   - Create one client with `new Lettermint({ sendingToken })`, adding `teamToken` only where the Team API is used. Keep the project's existing environment variable names.
+   - Replace fluent builder chains with `lettermint.emails.send({ ... })`, or with `lettermint.emails.compose()` per email. Never keep a builder in module scope or share it between emails.
+   - Move idempotency keys into the `send()` / `sendBatch()` options. Attachments become objects: `{ filename, content, contentType?, contentId? }`.
+   - Team API: use the same client, typed query objects instead of `'page[size]'`-style strings, and the renamed methods from the guide.
+   - Errors: switch to the 3.0 classes (`ApiError`, `ValidationError`, `RateLimitError`, …) and check them with `instanceof`.
+   - Webhooks: `await new Webhook(secret).verify(rawBody, headers)`. Keep passing the raw request body, keep the secret's `whsec_` prefix, and make sure the `X-Lettermint-Signature` and `X-Lettermint-Delivery` headers reach the handler.
+   - Rename types using the guide's type-name table.
+5. Run the type checker, linter and tests, and fix every error. Don't send real email or call the live API while testing.
+6. Finish with a summary: the files you changed, anything you could not migrate with certainty, and behaviour changes I should review.
+
+Never print, log or commit API tokens or webhook secrets.
+````
+
 ## Create the client
 
 `Lettermint.email()`, `Lettermint.api()`, `ApiClient`, `LettermintClient` and the `apiToken` option are removed.
