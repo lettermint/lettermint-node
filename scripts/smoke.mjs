@@ -16,7 +16,7 @@ try {
   const [pack] = JSON.parse(run('npm', ['pack', '--json', '--pack-destination', work], root));
   const files = pack.files.map((file) => file.path).sort();
   const allowed =
-    /^(dist\/index\.(js|mjs|d\.ts|d\.mts)(\.map)?|README\.md|UPGRADE\.md|CHANGELOG\.md|LICENSE(\.md)?|package\.json)$/;
+    /^(dist\/index\.(js|mjs|d\.ts|d\.mts)|README\.md|UPGRADE\.md|CHANGELOG\.md|LICENSE(\.md)?|package\.json)$/;
   const unexpected = files.filter((file) => !allowed.test(file));
   if (unexpected.length)
     throw new Error(`Unexpected files in the package: ${unexpected.join(', ')}`);

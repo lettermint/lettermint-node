@@ -5,6 +5,8 @@
 
 # Upgrade from 2.x to 3.0
 
+2.x no longer receives updates, including fixes. Upgrade to 3.0 to keep getting them.
+
 3.0 is a new major version. The main reason is safety: in 2.x, `Lettermint.email(token)` returned one mutable builder per client. Two emails composed at the same time on one client could mix recipients, content and `Idempotency-Key`, and an email abandoned halfway (for example because `tags()` threw) leaked into the next send. 3.0 stores nothing about a message on the client.
 
 ## Highlights
@@ -32,14 +34,14 @@
 ```ts
 // 2.x
 import { Lettermint } from 'lettermint';
-const email = Lettermint.email(process.env.LETTERMINT_SENDING_TOKEN!, { timeout: 10_000 });
+const email = Lettermint.email(process.env.LETTERMINT_PROJECT_TOKEN!, { timeout: 10_000 });
 const api = Lettermint.api(process.env.LETTERMINT_API_TOKEN!);
-const legacy = new Lettermint({ apiToken: process.env.LETTERMINT_SENDING_TOKEN! });
+const legacy = new Lettermint({ apiToken: process.env.LETTERMINT_PROJECT_TOKEN! });
 
 // 3.0
 import { Lettermint } from 'lettermint'; // or: import Lettermint from 'lettermint'
 const lettermint = new Lettermint({
-  sendingToken: process.env.LETTERMINT_SENDING_TOKEN, // for lettermint.emails.*
+  sendingToken: process.env.LETTERMINT_PROJECT_TOKEN, // for lettermint.emails.*
   teamToken: process.env.LETTERMINT_TEAM_TOKEN, // for the Team API
   timeout: 10_000,
 });
@@ -442,7 +444,7 @@ This guide covers upgrading from the latest released v1 Node SDK to v2.
 ```ts
 import { Lettermint } from 'lettermint';
 
-const email = Lettermint.email(process.env.LETTERMINT_SENDING_TOKEN!);
+const email = Lettermint.email(process.env.LETTERMINT_PROJECT_TOKEN!);
 const api = Lettermint.api(process.env.LETTERMINT_API_TOKEN!);
 ```
 

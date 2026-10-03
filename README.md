@@ -21,7 +21,7 @@ Create a client with a project sending token and send an email:
 ```ts
 import { Lettermint } from 'lettermint';
 
-const lettermint = new Lettermint({ sendingToken: process.env.LETTERMINT_SENDING_TOKEN });
+const lettermint = new Lettermint({ sendingToken: process.env.LETTERMINT_PROJECT_TOKEN });
 
 const result = await lettermint.emails.send({
   from: 'Acme <hello@acme.com>',
@@ -49,7 +49,7 @@ Pass one or both:
 
 ```ts
 const lettermint = new Lettermint({
-  sendingToken: process.env.LETTERMINT_SENDING_TOKEN,
+  sendingToken: process.env.LETTERMINT_PROJECT_TOKEN,
   teamToken: process.env.LETTERMINT_TEAM_TOKEN,
 });
 ```
