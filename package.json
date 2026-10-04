@@ -1,6 +1,6 @@
 {
   "name": "lettermint",
-  "version": "3.0.0-dev",
+  "version": "3.0.0",
   "description": "Official Lettermint SDK for Node.js, Bun, Deno and edge runtimes",
   "type": "commonjs",
   "main": "dist/index.js",
