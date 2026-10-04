@@ -20,6 +20,15 @@
 
 * **api:** support quarantined inbound message processing ([0eac95c](https://github.com/lettermint/lettermint-node/commit/0eac95c6e1adfc059f6010f429a0aae665aa907f))
 
+## [v3.0.0](https://github.com/lettermint/lettermint-node/compare/v2.8.0...v3.0.0) - 2026-10-04
+
+### What's Changed
+
+* feat(webhooks)!: add Basic Auth and required read flags by @bjarn in https://github.com/lettermint/lettermint-node/pull/35
+* feat!: Lettermint Node SDK 3.0 by @bjarn in https://github.com/lettermint/lettermint-node/pull/36
+
+**Full Changelog**: https://github.com/lettermint/lettermint-node/compare/v2.8.0...v3.0.0
+
 ## [v2.8.0](https://github.com/lettermint/lettermint-node/compare/v2.4.1...v2.8.0) - 2026-10-01
 
 ### What's Changed
