@@ -133,6 +133,16 @@ describe('HTTP error mapping', () => {
     expect((error as RateLimitError).retryAfter).toBeLessThanOrEqual(61);
   });
 
+  it('reads Retry-After from a 5xx response', async () => {
+    const { error } = await sendError(() =>
+      json(503, { message: 'Service Unavailable' }, { 'Retry-After': '2' })
+    );
+    expect(error).toBeInstanceOf(ServerError);
+    expect((error as ServerError).retryAfter).toBe(2);
+    const { error: plain } = await sendError(() => json(500, { message: 'Server Error' }));
+    expect((plain as ServerError).retryAfter).toBeUndefined();
+  });
+
   it('does not retry automatically', async () => {
     const { error, fetch } = await sendError(() => json(503, { message: 'Down' }));
     expect(error).toBeInstanceOf(ServerError);

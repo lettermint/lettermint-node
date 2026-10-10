@@ -131,9 +131,13 @@ export class RateLimitError extends ApiError {
 
 /** HTTP 5xx with a JSON or empty body. */
 export class ServerError extends ApiError {
-  constructor(init: ApiErrorInit) {
+  /** Seconds to wait, from the `Retry-After` header, when the API sent one. */
+  public readonly retryAfter: number | undefined;
+
+  constructor(init: ApiErrorInit & { retryAfter?: number }) {
     super(init);
     this.name = 'ServerError';
+    this.retryAfter = init.retryAfter;
   }
 }
 
