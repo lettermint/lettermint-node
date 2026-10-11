@@ -1,5 +1,14 @@
 # Changelog
 
+## [v3.1.0](https://github.com/lettermint/lettermint-node/compare/v3.0.0...v3.1.0) - 2026-10-11
+
+### What's Changed
+
+* ci: fix the red release run and the changelog order by @bjarn in https://github.com/lettermint/lettermint-node/pull/38
+* feat: add analyticsPages, retryAfter on server errors and the latest API types by @bjarn in https://github.com/lettermint/lettermint-node/pull/37
+
+**Full Changelog**: https://github.com/lettermint/lettermint-node/compare/v3.0.0...v3.1.0
+
 ## [v3.0.0](https://github.com/lettermint/lettermint-node/compare/v2.8.0...v3.0.0) - 2026-10-04
 
 ### What's Changed
