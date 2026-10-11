@@ -257,7 +257,7 @@ const html = await lettermint.messages.html('message-id');
 | `team.members` | `list`, `iterate`, `retrieve`, `updateAssignment` |
 | `webhooks` | `list`, `iterate`, `create`, `retrieve`, `update`, `delete`, `test`, `regenerateSecret` |
 | `webhooks.deliveries` | `list(webhookId)`, `iterate(webhookId)`, `retrieve(webhookId, deliveryId)` |
-| (root) | `ping`, `analytics`, `blockedFileTypes` |
+| (root) | `ping`, `analytics`, `analyticsPages`, `blockedFileTypes` |
 
 ### Query parameters and pagination
 
@@ -288,6 +288,51 @@ for await (const delivery of lettermint.webhooks.deliveries.iterate(webhookId)) 
 
 Stop early with `break`. The SDK requests the next page only when you get to it.
 
+### Analytics
+
+`lettermint.analytics(query)` runs one analytics query. `metrics` is the only required field; by default the API returns a summary of the last 30 days:
+
+```ts
+const result = await lettermint.analytics({
+  metrics: ['delivered', 'bounced', 'delivery_rate'],
+  from: '2026-10-01',
+  to: '2026-10-31',
+  timezone: 'Europe/Amsterdam',
+});
+
+console.log(result.data.summary?.metrics.delivery_rate); // 0.9836, or null when there is no data
+console.log(result.meta.partial, result.meta.effective_to);
+```
+
+Add `include` to ask for a `time_series` or a `breakdown`. A breakdown needs `group_by`, and the API returns its rows in pages of `limit` (at most 200). `analyticsPages()` follows `pagination.next_cursor` for you. It is an async generator that yields one whole response per request, so each page keeps its `meta` and `pagination`:
+
+```ts
+import type { AnalyticsBreakdownRow, AnalyticsQuery } from 'lettermint';
+
+const query: AnalyticsQuery = {
+  metrics: ['delivered', 'bounced'],
+  include: ['breakdown'],
+  group_by: ['recipient_domain'],
+  sort: { metric: 'bounced', direction: 'desc' },
+  limit: 200,
+};
+
+const rows: AnalyticsBreakdownRow[] = [];
+for await (const page of lettermint.analyticsPages(query)) {
+  rows.push(...(page.data.breakdown ?? []));
+  if (page.pagination.truncated) console.warn('More groups exist than the API ranks.');
+}
+```
+
+A cursor expires 60 seconds after its response, so read the next page promptly. An expired cursor throws a `ValidationError` with `errors.cursor`; run the query again to start over.
+
+A few things to know when you read a response:
+
+- A metric is `null` when the API cannot measure it for that row or bucket, and a rate is `null` when its denominator is zero. `0` means a measured zero.
+- `data.summary`, `data.time_series` and `data.breakdown` are present only when `include` asks for them. `previous`, `change` and `meta.comparison` are present only with `compare`.
+- `smtp_response_group` can be used in `group_by` but not as a filter dimension.
+- Analytics can answer `503` or `504` when a query takes too long or the service is busy. Both throw a `ServerError`; see [Errors](#errors).
+
 ### Cancellation and timeouts
 
 Every method takes an `options` argument last, with `signal` (an `AbortSignal`) and `timeout` (milliseconds, overrides the client's timeout):
@@ -311,7 +356,7 @@ Every error the SDK throws extends `LettermintError`:
 | `ConflictError` | 409 | |
 | `ValidationError` | 422 | `errors` (field errors) |
 | `RateLimitError` | 429 | `retryAfter` (seconds) |
-| `ServerError` | 5xx | |
+| `ServerError` | 5xx | `retryAfter` (seconds, when the API sent `Retry-After`) |
 | `TimeoutError` | No complete response within the timeout | `timeout` |
 | `ConnectionError` | The request failed (DNS, TLS, refused, reset) | `cause` |
 | `UnexpectedResponseError` | An empty or non-JSON body where JSON was expected, or an error page such as a proxy's HTML 502 | `status`, `bodyExcerpt` |

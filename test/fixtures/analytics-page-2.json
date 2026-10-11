@@ -1,0 +1,118 @@
+{
+  "data": {
+    "summary": {
+      "metrics": {
+        "delivered": 1200,
+        "bounced": 0,
+        "delivery_rate": 0.9836,
+        "delivery_latency_p50_ms": null
+      },
+      "rate_bases": {
+        "delivery_rate": {
+          "numerator": 1200,
+          "denominator": 1220
+        }
+      },
+      "previous": {
+        "metrics": {
+          "delivered": 1100,
+          "bounced": 4,
+          "delivery_rate": null,
+          "delivery_latency_p50_ms": 812.5
+        },
+        "rate_bases": {
+          "delivery_rate": {
+            "numerator": null,
+            "denominator": null
+          }
+        }
+      },
+      "change": {
+        "delivered": {
+          "absolute": 100,
+          "relative": 0.0909
+        },
+        "delivery_rate": {
+          "absolute": null,
+          "relative": null,
+          "percentage_points": null
+        }
+      }
+    },
+    "time_series": [
+      {
+        "from": "2026-09-15T08:30:00+05:30",
+        "to": "2026-09-15T09:30:00+05:30",
+        "available": true,
+        "partial": false,
+        "metrics": {
+          "delivered": 1200,
+          "bounced": 0,
+          "delivery_rate": 0.9836,
+          "delivery_latency_p50_ms": null
+        },
+        "rate_bases": {
+          "delivery_rate": {
+            "numerator": 1200,
+            "denominator": 1220
+          }
+        }
+      },
+      {
+        "from": "2026-09-15T09:30:00+05:30",
+        "to": "2026-09-15T10:30:00+05:30",
+        "available": false,
+        "partial": true,
+        "metrics": {
+          "delivered": null,
+          "bounced": null,
+          "delivery_rate": null,
+          "delivery_latency_p50_ms": null
+        },
+        "rate_bases": {}
+      }
+    ],
+    "breakdown": [
+      {
+        "dimensions": {
+          "recipient_domain": null
+        },
+        "metrics": {
+          "delivered": 50,
+          "bounced": null,
+          "delivery_rate": null,
+          "delivery_latency_p50_ms": null
+        },
+        "rate_bases": {}
+      }
+    ]
+  },
+  "meta": {
+    "time_basis": "event",
+    "timezone": "Asia/Kolkata",
+    "interval": "hour",
+    "from": "2026-09-15T03:00:00.000000Z",
+    "to": "2026-09-15T05:00:00.000000Z",
+    "effective_to": "2026-09-15T05:00:00.000000Z",
+    "alignment": "hour",
+    "generated_at": "2026-09-15T04:12:30.482915Z",
+    "available_since": "2026-06-17T00:00:00.000000Z",
+    "partial": true,
+    "ongoing": true,
+    "collection_completeness": "best_effort",
+    "last_ingested_at": null,
+    "metric_definition_version": "analytics-v2",
+    "ranked_group_limit": 1000,
+    "comparison": {
+      "from": "2026-09-15T01:00:00.000000Z",
+      "to": "2026-09-15T03:00:00.000000Z",
+      "partial": false
+    }
+  },
+  "pagination": {
+    "total_groups": 3,
+    "returned_groups": 1,
+    "next_cursor": null,
+    "truncated": false
+  }
+}

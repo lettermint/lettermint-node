@@ -1,0 +1,33 @@
+{
+  "data": {
+    "summary": {
+      "metrics": {
+        "delivered": 1200
+      },
+      "rate_bases": {}
+    }
+  },
+  "meta": {
+    "time_basis": "event",
+    "timezone": "UTC",
+    "interval": "day",
+    "from": "2026-09-15T03:00:00.000000Z",
+    "to": "2026-09-15T05:00:00.000000Z",
+    "effective_to": "2026-09-15T05:00:00.000000Z",
+    "alignment": "day",
+    "generated_at": "2026-09-15T04:12:30.482915Z",
+    "available_since": "2026-06-17T00:00:00.000000Z",
+    "partial": true,
+    "ongoing": true,
+    "collection_completeness": "best_effort",
+    "last_ingested_at": null,
+    "metric_definition_version": "analytics-v2",
+    "ranked_group_limit": 1000
+  },
+  "pagination": {
+    "total_groups": 0,
+    "returned_groups": 0,
+    "next_cursor": null,
+    "truncated": false
+  }
+}

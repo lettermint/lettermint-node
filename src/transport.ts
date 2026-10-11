@@ -178,7 +178,12 @@ function createApiError(response: Response, body: unknown): ApiError {
         retryAfter: parseRetryAfter(response.headers.get('retry-after')),
       });
     default:
-      return status >= 500 ? new ServerError(init) : new ApiError(init);
+      return status >= 500
+        ? new ServerError({
+            ...init,
+            retryAfter: parseRetryAfter(response.headers.get('retry-after')),
+          })
+        : new ApiError(init);
   }
 }
 

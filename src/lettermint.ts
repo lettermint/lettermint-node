@@ -151,6 +151,32 @@ export class Lettermint {
     return this.#transport.call('POST /analytics', { label: 'analytics', body: query, options });
   }
 
+  /**
+   * Queries email analytics and follows `pagination.next_cursor`, yielding one
+   * whole response per request. Each response carries the next page of
+   * `data.breakdown` with its own `meta` and `pagination`. Needs `teamToken`.
+   *
+   * A cursor expires 60 seconds after its response, so request the next page
+   * promptly; an expired cursor rejects with a `ValidationError`. The query
+   * passed in is not changed.
+   */
+  async *analyticsPages(
+    query: AnalyticsQuery,
+    options?: RequestOptions
+  ): AsyncGenerator<AnalyticsResponse, void, undefined> {
+    const seen = new Set<string>();
+    if (typeof query.cursor === 'string') seen.add(query.cursor);
+    let body = query;
+    while (true) {
+      const page = await this.analytics(body, options);
+      yield page;
+      const next = page.pagination?.next_cursor;
+      if (typeof next !== 'string' || next === '' || seen.has(next)) return;
+      seen.add(next);
+      body = { ...query, cursor: next };
+    }
+  }
+
   /** The file extensions and MIME types that cannot be attached. Needs `teamToken`. */
   blockedFileTypes(options?: RequestOptions): Promise<BlockedFileTypes> {
     return this.#transport.call('GET /blocked-file-types', { label: 'blockedFileTypes', options });
