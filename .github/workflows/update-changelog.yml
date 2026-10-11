@@ -1,4 +1,4 @@
-name: Update Changelog and Version
+name: Update Changelog
 
 on:
   workflow_call:
@@ -7,8 +7,7 @@ on:
         required: true
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   update:
@@ -32,16 +31,6 @@ jobs:
           ref: ${{ github.event.repository.default_branch }}
           token: ${{ steps.release-bot.outputs.token }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-
-      - name: Update package version
-        env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: npm version "${RELEASE_TAG#v}" --no-git-tag-version --allow-same-version --ignore-scripts
-
       - name: Update changelog from release notes
         uses: stefanzweifel/changelog-updater-action@a938690fad7edf25368f37e43a1ed1b34303eb36 # v1
         with:
@@ -51,20 +40,15 @@ jobs:
       - name: Verify changed paths
         shell: bash
         run: |
-          for path in CHANGELOG.md package.json package-lock.json; do
-            test -f "$path"
-            test ! -L "$path"
-          done
+          test -f CHANGELOG.md
+          test ! -L CHANGELOG.md
 
           mapfile -t changed_paths < <(git status --porcelain=v1 --untracked-files=all | cut -c4-)
           for path in "${changed_paths[@]}"; do
-            case "$path" in
-              CHANGELOG.md|package.json|package-lock.json) ;;
-              *)
-                echo "Unexpected changed path: $path" >&2
-                exit 1
-                ;;
-            esac
+            if [[ "$path" != "CHANGELOG.md" ]]; then
+              echo "Unexpected changed path: $path" >&2
+              exit 1
+            fi
           done
 
       - name: Commit updated changelog
@@ -86,15 +70,3 @@ jobs:
           git add -- CHANGELOG.md
           git commit -m "Update CHANGELOG"
           git push origin "HEAD:${DEFAULT_BRANCH}"
-
-      - name: Open package version pull request
-        uses: peter-evans/create-pull-request@v8
-        with:
-          token: ${{ github.token }}
-          branch: automation/update-changelog
-          commit-message: Update package version
-          title: Update package version
-          body: Update package.json and package-lock.json for the published release.
-          add-paths: |
-            package.json
-            package-lock.json

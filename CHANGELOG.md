@@ -1,24 +1,4 @@
-# [2.7.0](https://github.com/lettermint/lettermint-node/compare/v2.6.0...v2.7.0) (2026-09-14)
-
-### What's Changed
-
-* ci: publish Node SDK from GitHub releases by @bjarn in https://github.com/lettermint/lettermint-node/pull/27
-* feat: add typed message tags by @bjarn in https://github.com/lettermint/lettermint-node/pull/28
-* chore: add all team as code owners by @bjarn in https://github.com/lettermint/lettermint-node/pull/29
-
-**Full Changelog**: https://github.com/lettermint/lettermint-node/compare/v2.6.0...v2.7.0
-
-# [2.6.0](https://github.com/lettermint/lettermint-node/compare/v2.5.0...v2.6.0) (2026-09-07)
-
-### Features
-
-* add built-in webhook signature verification ([f256598](https://github.com/lettermint/lettermint-node/commit/f2565988da01c4c53873463de8581957667d0847))
-
-# [2.5.0](https://github.com/lettermint/lettermint-node/compare/v2.4.1...v2.5.0) (2026-09-05)
-
-### Features
-
-* **api:** support quarantined inbound message processing ([0eac95c](https://github.com/lettermint/lettermint-node/commit/0eac95c6e1adfc059f6010f429a0aae665aa907f))
+# Changelog
 
 ## [v3.0.0](https://github.com/lettermint/lettermint-node/compare/v2.8.0...v3.0.0) - 2026-10-04
 
@@ -29,7 +9,7 @@
 
 **Full Changelog**: https://github.com/lettermint/lettermint-node/compare/v2.8.0...v3.0.0
 
-## [v2.8.0](https://github.com/lettermint/lettermint-node/compare/v2.4.1...v2.8.0) - 2026-10-01
+## [v2.8.0](https://github.com/lettermint/lettermint-node/compare/v2.7.0...v2.8.0) - 2026-10-01
 
 ### What's Changed
 
@@ -41,37 +21,59 @@
 
 **Full Changelog**: https://github.com/lettermint/lettermint-node/compare/v2.7.0...v2.8.0
 
+## [2.7.0](https://github.com/lettermint/lettermint-node/compare/v2.6.0...v2.7.0) (2026-09-14)
+
+### What's Changed
+
+* ci: publish Node SDK from GitHub releases by @bjarn in https://github.com/lettermint/lettermint-node/pull/27
+* feat: add typed message tags by @bjarn in https://github.com/lettermint/lettermint-node/pull/28
+* chore: add all team as code owners by @bjarn in https://github.com/lettermint/lettermint-node/pull/29
+
+**Full Changelog**: https://github.com/lettermint/lettermint-node/compare/v2.6.0...v2.7.0
+
+## [2.6.0](https://github.com/lettermint/lettermint-node/compare/v2.5.0...v2.6.0) (2026-09-07)
+
+### Features
+
+* add built-in webhook signature verification ([f256598](https://github.com/lettermint/lettermint-node/commit/f2565988da01c4c53873463de8581957667d0847))
+
+## [2.5.0](https://github.com/lettermint/lettermint-node/compare/v2.4.1...v2.5.0) (2026-09-05)
+
+### Features
+
+* **api:** support quarantined inbound message processing ([0eac95c](https://github.com/lettermint/lettermint-node/commit/0eac95c6e1adfc059f6010f429a0aae665aa907f))
+
 ## [2.4.1](https://github.com/lettermint/lettermint-node/compare/v2.4.0...v2.4.1) (2026-08-27)
 
 ### Bug Fixes
 
 * expose ESM build via package.json exports ([1eae85e](https://github.com/lettermint/lettermint-node/commit/1eae85efbe98585eea785abcde2d6b37fdf3117b)), closes [#23](https://github.com/lettermint/lettermint-node/issues/23)
 
-# [2.4.0](https://github.com/lettermint/lettermint-node/compare/v2.3.0...v2.4.0) (2026-08-27)
+## [2.4.0](https://github.com/lettermint/lettermint-node/compare/v2.3.0...v2.4.0) (2026-08-27)
 
 ### Features
 
 * **api:** support scheduled message delivery ([#22](https://github.com/lettermint/lettermint-node/issues/22)) ([c0dd2bc](https://github.com/lettermint/lettermint-node/commit/c0dd2bceeaab05a9a3fc12fdf9f86e6467dd8888))
 
-# [2.3.0](https://github.com/lettermint/lettermint-node/compare/v2.2.0...v2.3.0) (2026-08-19)
+## [2.3.0](https://github.com/lettermint/lettermint-node/compare/v2.2.0...v2.3.0) (2026-08-19)
 
 ### Features
 
 * **api:** support message tags and disposable email suppression ([#21](https://github.com/lettermint/lettermint-node/issues/21)) ([0dae037](https://github.com/lettermint/lettermint-node/commit/0dae037c56cfe4d9d53720e51cbecbfd2eb56e20))
 
-# [2.2.0](https://github.com/lettermint/lettermint-node/compare/v2.1.0...v2.2.0) (2026-08-13)
+## [2.2.0](https://github.com/lettermint/lettermint-node/compare/v2.1.0...v2.2.0) (2026-08-13)
 
 ### Features
 
 * **email:** add TLS settings, attachment MIME types, and batch idempotency ([#19](https://github.com/lettermint/lettermint-node/issues/19)) ([3a6cacf](https://github.com/lettermint/lettermint-node/commit/3a6cacfb7b73e0467565530318725900fbe1fff3)), closes [#18](https://github.com/lettermint/lettermint-node/issues/18)
 
-# [2.1.0](https://github.com/lettermint/lettermint-node/compare/v2.0.0...v2.1.0) (2026-07-07)
+## [2.1.0](https://github.com/lettermint/lettermint-node/compare/v2.0.0...v2.1.0) (2026-07-07)
 
 ### Features
 
 * add route settings, webhook auto-reply events, and blocked file types ([#17](https://github.com/lettermint/lettermint-node/issues/17)) ([a598cf3](https://github.com/lettermint/lettermint-node/commit/a598cf3e3b011129275ee9c2a7a003fe82de7ce8))
 
-# [2.0.0](https://github.com/lettermint/lettermint-node/compare/v1.5.1...v2.0.0) (2026-05-11)
+## [2.0.0](https://github.com/lettermint/lettermint-node/compare/v1.5.1...v2.0.0) (2026-05-11)
 
 ### Features
 
@@ -89,19 +91,19 @@
 * moved `this.reset()` to a `finally` block to guarantee cleanup even if the send operation fails. ([83343f1](https://github.com/lettermint/lettermint-node/commit/83343f17503f2aea20ba46ce5f264999e3b63f25))
 * reset email properties after each send ([24a17ac](https://github.com/lettermint/lettermint-node/commit/24a17acbc2429c5eb30391f9df3dc0ea7aaf4de1))
 
-# [1.5.0](https://github.com/lettermint/lettermint-node/compare/v1.4.0...v1.5.0) (2025-12-23)
+## [1.5.0](https://github.com/lettermint/lettermint-node/compare/v1.4.0...v1.5.0) (2025-12-23)
 
 ### Features
 
 * include SDK version and Node.js version in User-Agent header ([2c069a7](https://github.com/lettermint/lettermint-node/commit/2c069a70b96703e5e1f5c1383343bd992f2a6f95))
 
-# [1.4.0](https://github.com/lettermint/lettermint-node/compare/v1.3.0...v1.4.0) (2025-10-07)
+## [1.4.0](https://github.com/lettermint/lettermint-node/compare/v1.3.0...v1.4.0) (2025-10-07)
 
 ### Features
 
 * add support for inline attachments in email requests ([45d9abc](https://github.com/lettermint/lettermint-node/commit/45d9abc464d57453e29d6b3e17877acb1850c791))
 
-# [1.3.0](https://github.com/lettermint/lettermint-node/compare/v1.2.1...v1.3.0) (2025-08-24)
+## [1.3.0](https://github.com/lettermint/lettermint-node/compare/v1.2.1...v1.3.0) (2025-08-24)
 
 ### Features
 
@@ -113,13 +115,13 @@
 
 * update README to document metadata functionality ([f488fe3](https://github.com/lettermint/lettermint-node/commit/f488fe38561f0ed655082c60c35f174df3bc90c3))
 
-# [1.2.0](https://github.com/lettermint/lettermint-node/compare/v1.1.0...v1.2.0) (2025-08-23)
+## [1.2.0](https://github.com/lettermint/lettermint-node/compare/v1.1.0...v1.2.0) (2025-08-23)
 
 ### Features
 
 * add support for metadata in email requests ([4906c0b](https://github.com/lettermint/lettermint-node/commit/4906c0b3e85feec79f5baa555790bb8794c22f46))
 
-# [1.1.0](https://github.com/lettermint/lettermint-node/compare/v1.0.1...v1.1.0) (2025-06-28)
+## [1.1.0](https://github.com/lettermint/lettermint-node/compare/v1.0.1...v1.1.0) (2025-06-28)
 
 ### Bug Fixes
 
