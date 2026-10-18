@@ -4,6 +4,7 @@ import type {
   MessageAttachmentInput,
   MessageTagInput,
   SandboxResult,
+  SendBatchMailItem,
   SendBatchMailResponse,
   SendMailRequest,
   SendMailRequestSettings,
@@ -23,6 +24,23 @@ export interface EmailMessageAttachment extends Omit<MessageAttachmentInput, 'co
  */
 export interface EmailMessage extends Omit<SendMailRequest, 'attachments'> {
   attachments?: EmailMessageAttachment[];
+}
+
+/**
+ * An email in {@link Emails.sendBatch}: an {@link EmailMessage} with an optional
+ * per-email `idempotency_key`. Only batches accept it; `send()` takes the
+ * `idempotencyKey` option instead.
+ */
+export interface BatchEmailMessage extends EmailMessage {
+  /**
+   * Makes this email safe to send again, in this or a later batch (1-255
+   * characters, unique within the batch). If an email with the same key and
+   * content was accepted in the last 24 hours, the API returns its original
+   * result and does not send it again. Reusing a key with different content,
+   * or while that email is still being processed, rejects the whole batch with
+   * a `ConflictError` and sends nothing.
+   */
+  idempotency_key?: SendBatchMailItem['idempotency_key'];
 }
 
 /** An attachment for {@link EmailBuilder.attach}. */
@@ -115,8 +133,8 @@ export function validateEmailMessage(
 }
 
 /** Returns a deep copy of the message in wire format, with binary attachment content base64-encoded. */
-function toWire(message: EmailMessage): SendMailRequest {
-  const copy = structuredCopy(message) as SendMailRequest;
+function toWire(message: BatchEmailMessage): SendBatchMailItem {
+  const copy = structuredCopy(message) as SendBatchMailItem;
   if (message.attachments) {
     copy.attachments = message.attachments.map((attachment) => ({
       ...attachment,
@@ -314,9 +332,21 @@ export class Emails {
     });
   }
 
-  /** Sends up to 500 emails in one request. Accepts messages and builders. */
+  /**
+   * Sends up to 500 emails in one request. Accepts messages and builders.
+   *
+   * Give each message an `idempotency_key` to retry a batch safely: a retry
+   * returns the original result of every email that was accepted and sends only
+   * the rest. Keys must be unique within the batch; the API checks them. To give
+   * a builder a key, pass `{ ...builder.build(), idempotency_key }`.
+   * `options.idempotencyKey` is a separate key for the request as a whole.
+   *
+   * Emails are accepted in order. When one fails, the emails before it may
+   * already be accepted; the thrown `ApiError` then lists them in
+   * `details.accepted` (`{ index, message_id }` per email).
+   */
   async sendBatch(
-    messages: (EmailMessage | EmailBuilder)[],
+    messages: (BatchEmailMessage | EmailBuilder)[],
     options?: SendOptions
   ): Promise<SendBatchMailResponse> {
     this.#transport.assertAuth('emails.sendBatch', 'sending');

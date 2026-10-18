@@ -3,6 +3,7 @@ import { Lettermint } from './lettermint';
 export { Lettermint };
 export type { LettermintOptions, LettermintShorthandOptions } from './lettermint';
 export type {
+  BatchEmailMessage,
   EmailAttachment,
   EmailBuilder,
   EmailMessage,
