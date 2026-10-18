@@ -1,9 +1,12 @@
 import {
   ApiError,
+  ConflictError,
   type Lettermint,
   LettermintConfigError,
   type PendingSendMailResponse,
+  type RetryWebhookDeliveryResponse,
   type RouteData,
+  type WebhookDeliveryData,
 } from '../src';
 import { type OperationKey, operations } from '../src/generated/operations';
 import { SENDING_TOKEN, TEAM_TOKEN, client, json, rejection, text } from './helpers';
@@ -95,6 +98,8 @@ const calls: Record<OperationKey, Call> = {
       url: 'https://example.test/hook',
       events: ['message.sent'],
     } as never),
+  'POST /webhooks/{webhookId}/deliveries/{deliveryId}/retry': (l) =>
+    l.webhooks.deliveries.retry(ids.webhookId, ids.deliveryId),
   'POST /webhooks/{webhookId}/regenerate-secret': (l) => l.webhooks.regenerateSecret(ids.webhookId),
   'POST /webhooks/{webhookId}/test': (l) => l.webhooks.test(ids.webhookId),
   'PUT /domains/{domainId}/projects': (l) =>
@@ -125,7 +130,7 @@ function responseFor(key: OperationKey): Response {
 describe('operation coverage', () => {
   it('has an SDK method for every operation in the generated table', () => {
     expect(Object.keys(calls).sort()).toEqual(Object.keys(operations).sort());
-    expect(Object.keys(operations)).toHaveLength(59);
+    expect(Object.keys(operations)).toHaveLength(60);
   });
 
   it.each(Object.keys(calls) as OperationKey[])('%s', async (key) => {
@@ -210,6 +215,62 @@ describe('request bodies and options', () => {
       code: 'MESSAGE_CONTENT_UNAVAILABLE',
     });
   });
+
+  it('retries a webhook delivery without a body', async () => {
+    const { lettermint, requests } = client({}, () =>
+      json(202, { message: 'Retry queued.', delivery_id: 'delivery/1' })
+    );
+    const result: RetryWebhookDeliveryResponse = await lettermint.webhooks.deliveries.retry(
+      'webhook/1',
+      'delivery/1'
+    );
+    expect(result).toEqual({ message: 'Retry queued.', delivery_id: 'delivery/1' });
+    expect(requests[0].method).toBe('POST');
+    expect(requests[0].url).toBe(
+      'https://api.lettermint.co/v1/webhooks/webhook%2F1/deliveries/delivery%2F1/retry'
+    );
+    expect(requests[0].headers.Authorization).toBe(`Bearer ${TEAM_TOKEN}`);
+    expect(requests[0].headers).not.toHaveProperty('x-lettermint-token');
+    expect(requests[0].rawBody).toBeUndefined();
+    expect(requests[0].headers).not.toHaveProperty('Content-Type');
+    expect(requests[0].headers).not.toHaveProperty('Idempotency-Key');
+  });
+
+  it('rejects a retry of a delivery that cannot be retried', async () => {
+    const body = {
+      error: {
+        code: 'WEBHOOK_DELIVERY_NOT_RETRYABLE',
+        message: 'This delivery cannot be retried.',
+      },
+    };
+    const { lettermint } = client({}, () => json(409, body));
+    const error = await rejection(lettermint.webhooks.deliveries.retry('w', 'd'));
+    expect(error).toBeInstanceOf(ConflictError);
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({
+      status: 409,
+      code: 'WEBHOOK_DELIVERY_NOT_RETRYABLE',
+      message: 'This delivery cannot be retried.',
+    });
+  });
+
+  it.each(['2026-10-18T12:05:00Z', null])(
+    'reads next_retry_at %p on a webhook delivery',
+    async (nextRetryAt) => {
+      const delivery = { id: 'delivery_1', status: 'failed', next_retry_at: nextRetryAt };
+      const { lettermint } = client({}, (request) =>
+        json(
+          200,
+          request.path.endsWith('/deliveries') ? { data: [delivery], next_cursor: null } : delivery
+        )
+      );
+      const result: WebhookDeliveryData = await lettermint.webhooks.deliveries.retrieve('w', 'd');
+      const typed: string | null | undefined = result.next_retry_at;
+      expect(typed).toBe(nextRetryAt);
+      const page = await lettermint.webhooks.deliveries.list('w');
+      expect(page.data[0].next_retry_at).toBe(nextRetryAt);
+    }
+  );
 
   it.each([
     ['omit', {}],
@@ -440,6 +501,12 @@ describe('path parameters', () => {
     );
     await expect(lettermint.webhooks.deliveries.retrieve('w', id as string)).rejects.toThrow(
       'webhooks.deliveries.retrieve: `deliveryId`'
+    );
+    await expect(lettermint.webhooks.deliveries.retry(id as string, 'd')).rejects.toThrow(
+      'webhooks.deliveries.retry: `webhookId`'
+    );
+    await expect(lettermint.webhooks.deliveries.retry('w', id as string)).rejects.toThrow(
+      'webhooks.deliveries.retry: `deliveryId`'
     );
     expect(fetch).not.toHaveBeenCalled();
   });

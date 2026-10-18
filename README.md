@@ -256,6 +256,9 @@ const html = await lettermint.messages.html('message-id');
 
 // Send a sent message again as a new message; leave out the body for every original recipient.
 const resent = await lettermint.messages.resend('message-id', { recipients: ['jane@example.com'] });
+
+// Send a webhook delivery's original payload again now; automatic retries continue if it fails.
+await lettermint.webhooks.deliveries.retry('webhook-id', 'delivery-id');
 ```
 
 | Property | Methods |
@@ -270,7 +273,7 @@ const resent = await lettermint.messages.resend('message-id', { recipients: ['ja
 | `team` | `retrieve`, `update`, `usage`, `roles` |
 | `team.members` | `list`, `iterate`, `retrieve`, `updateAssignment` |
 | `webhooks` | `list`, `iterate`, `create`, `retrieve`, `update`, `delete`, `test`, `regenerateSecret` |
-| `webhooks.deliveries` | `list(webhookId)`, `iterate(webhookId)`, `retrieve(webhookId, deliveryId)` |
+| `webhooks.deliveries` | `list(webhookId)`, `iterate(webhookId)`, `retrieve(webhookId, deliveryId)`, `retry(webhookId, deliveryId)` |
 | (root) | `ping`, `analytics`, `analyticsPages`, `blockedFileTypes` |
 
 ### Query parameters and pagination
