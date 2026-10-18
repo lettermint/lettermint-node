@@ -967,7 +967,7 @@ export interface MessageData {
   route_id: string;
   created_at: string;
   /** The ID of the message this message resent. Null when it is not a resend */
-  resent_from_message_id: string | null;
+  resent_from_message_id?: string | null;
 }
 
 export interface MessageEventData {
