@@ -54,7 +54,7 @@ const lettermint = new Lettermint({
 });
 ```
 
-Each part uses its own token and never falls back to the other one. If the token a method needs is missing, it throws a `LettermintConfigError` that names the option (`domains.list needs `teamToken``), before any request. `lettermint.ping()` uses the team token when it is set, otherwise the sending token. `messages.reschedule()` and `messages.cancel()` accept either token in the same way.
+Each part uses its own token and never falls back to the other one. If the token a method needs is missing, it throws a `LettermintConfigError` that names the option (`domains.list needs `teamToken``), before any request. `lettermint.ping()` uses the team token when it is set, otherwise the sending token. `messages.reschedule()`, `messages.cancel()` and `messages.resend()` accept either token in the same way.
 
 You can also pass a single token as a string. The SDK chooses its type by the format: `lm_team_` followed by letters and digits is a team token, and `lm_` followed by letters and digits is a sending token. Any other value, such as an SSO verification token (`lm_sso_…`), throws a `LettermintConfigError`; pass `{ sendingToken }` or `{ teamToken }` explicitly in that case.
 
@@ -242,12 +242,15 @@ console.log(project.api_token); // the new project's sending token, shown once
 
 const stats = await lettermint.stats.retrieve({ from: '2026-10-01', to: '2026-10-31' });
 const html = await lettermint.messages.html('message-id');
+
+// Send a sent message again as a new message; leave out the body for every original recipient.
+const resent = await lettermint.messages.resend('message-id', { recipients: ['jane@example.com'] });
 ```
 
 | Property | Methods |
 | --- | --- |
 | `domains` | `list`, `iterate`, `create`, `retrieve`, `delete`, `verifyDnsRecords`, `verifyDnsRecord`, `updateProjects` |
-| `messages` | `list`, `iterate`, `retrieve`, `events`, `iterateEvents`, `source`, `html`, `text`, `reschedule`, `cancel`, `process` |
+| `messages` | `list`, `iterate`, `retrieve`, `events`, `iterateEvents`, `source`, `html`, `text`, `reschedule`, `cancel`, `process`, `resend` |
 | `projects` | `list`, `iterate`, `create`, `retrieve`, `update`, `delete`, `rotateToken` |
 | `projects.reportForwarding` | `retrieve`, `update`, `delete`, `verify`, `resendCode` |
 | `routes` | `list(projectId)`, `iterate(projectId)`, `create(projectId, …)`, `retrieve`, `update`, `delete`, `verifyInboundDomain` |

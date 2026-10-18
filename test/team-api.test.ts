@@ -1,4 +1,10 @@
-import { type Lettermint, LettermintConfigError, type RouteData } from '../src';
+import {
+  ApiError,
+  type Lettermint,
+  LettermintConfigError,
+  type PendingSendMailResponse,
+  type RouteData,
+} from '../src';
 import { type OperationKey, operations } from '../src/generated/operations';
 import { SENDING_TOKEN, TEAM_TOKEN, client, json, rejection, text } from './helpers';
 
@@ -62,6 +68,8 @@ const calls: Record<OperationKey, Call> = {
     l.domains.verifyDnsRecord(ids.domainId, ids.recordId),
   'POST /messages/{messageId}/cancel': (l) => l.messages.cancel(ids.messageId),
   'POST /messages/{messageId}/process': (l) => l.messages.process(ids.messageId),
+  'POST /messages/{messageId}/resend': (l) =>
+    l.messages.resend(ids.messageId, { recipients: ['b@example.test'] }),
   'POST /projects': (l) => l.projects.create({ name: 'Production' }),
   'POST /projects/{projectId}/report-forwarding/resend-code': (l) =>
     l.projects.reportForwarding.resendCode(ids.projectId),
@@ -117,7 +125,7 @@ function responseFor(key: OperationKey): Response {
 describe('operation coverage', () => {
   it('has an SDK method for every operation in the generated table', () => {
     expect(Object.keys(calls).sort()).toEqual(Object.keys(operations).sort());
-    expect(Object.keys(operations)).toHaveLength(58);
+    expect(Object.keys(operations)).toHaveLength(59);
   });
 
   it.each(Object.keys(calls) as OperationKey[])('%s', async (key) => {
@@ -164,6 +172,43 @@ describe('request bodies and options', () => {
     await lettermint.messages.process('m');
     expect(requests[0].headers['Idempotency-Key']).toBe('process-1');
     expect(requests[1].headers).not.toHaveProperty('Idempotency-Key');
+  });
+
+  it('resends a message to every or to some original recipients', async () => {
+    const { lettermint, requests } = client({}, () =>
+      json(202, { message_id: 'resent-1', status: 'pending' })
+    );
+    const result: PendingSendMailResponse = await lettermint.messages.resend('message/id');
+    expect(result).toEqual({ message_id: 'resent-1', status: 'pending' });
+    await lettermint.messages.resend('message/id', { recipients: ['jane@example.test'] });
+    await lettermint.messages.resend('message/id', {}, { idempotencyKey: 'resend-1' });
+
+    for (const request of requests) {
+      expect(request.method).toBe('POST');
+      expect(request.url).toBe('https://api.lettermint.co/v1/messages/message%2Fid/resend');
+      expect(request.headers.Authorization).toBe(`Bearer ${TEAM_TOKEN}`);
+    }
+    expect(requests[0].rawBody).toBeUndefined();
+    expect(requests[0].headers).not.toHaveProperty('Content-Type');
+    expect(requests[0].headers).not.toHaveProperty('Idempotency-Key');
+    expect(requests[1].body).toEqual({ recipients: ['jane@example.test'] });
+    expect(requests[1].headers['Content-Type']).toBe('application/json');
+    expect(requests[2].body).toEqual({});
+    expect(requests[2].headers['Idempotency-Key']).toBe('resend-1');
+  });
+
+  it('rejects a resend of a message whose content is no longer retained', async () => {
+    const body = {
+      error: { code: 'MESSAGE_CONTENT_UNAVAILABLE', message: 'The content is gone.' },
+    };
+    const { lettermint } = client({}, () => json(410, body));
+    const error = await rejection(lettermint.messages.resend('m'));
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({
+      name: 'ApiError',
+      status: 410,
+      code: 'MESSAGE_CONTENT_UNAVAILABLE',
+    });
   });
 
   it.each([

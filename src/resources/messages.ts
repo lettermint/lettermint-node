@@ -6,8 +6,10 @@ import type {
   MessageData,
   MessageEventData,
   MessageListData,
+  PendingSendMailResponse,
   ProcessInboundMessageResponse,
   RescheduleMessageRequest,
+  ResendMessageRequest,
   ScheduledMessage,
 } from '../generated/types';
 import type { NestedQuery } from '../query';
@@ -15,8 +17,8 @@ import type { IdempotentRequestOptions, RequestOptions, Transport } from '../tra
 import { ApiResource } from './base';
 
 /**
- * Sent and received messages. Team token; `reschedule` and `cancel` also
- * accept the sending token when no team token is configured.
+ * Sent and received messages. Team token; `reschedule`, `cancel` and `resend`
+ * also accept the sending token when no team token is configured.
  */
 export class Messages extends ApiResource {
   /** @internal */
@@ -134,6 +136,27 @@ export class Messages extends ApiResource {
     return this.request('POST /messages/{messageId}/process', {
       label: 'messages.process',
       path: { messageId },
+      idempotencyKey: options?.idempotencyKey,
+      options,
+    });
+  }
+
+  /**
+   * Sends the stored content of a sent message again as a new message with its
+   * own ID; the new message's `resent_from_message_id` points to the original.
+   * Pass `recipients` to resend to some of the original recipients only, or
+   * leave out the body to resend to all of them. A message can be resent while
+   * its content is retained (HTTP 410 after that), at most 5 times in 24 hours.
+   */
+  resend(
+    messageId: string,
+    body?: ResendMessageRequest,
+    options?: IdempotentRequestOptions
+  ): Promise<PendingSendMailResponse> {
+    return this.request('POST /messages/{messageId}/resend', {
+      label: 'messages.resend',
+      path: { messageId },
+      body,
       idempotencyKey: options?.idempotencyKey,
       options,
     });

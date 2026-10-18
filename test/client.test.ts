@@ -209,11 +209,12 @@ describe('single-token clients', () => {
     expect(both.requests[1].headers).not.toHaveProperty('Authorization');
   });
 
-  it('lets reschedule and cancel use the sending token when no team token is set', async () => {
+  it('lets reschedule, cancel and resend use the sending token when no team token is set', async () => {
     const scheduled = { message_id: 'm', status: 'scheduled', scheduled_at: null };
     const sendingOnly = client({ teamToken: undefined }, () => json(200, scheduled));
     await sendingOnly.lettermint.messages.cancel('m');
     await sendingOnly.lettermint.messages.reschedule('m', { scheduled_at: '2026-10-05T09:00:00Z' });
+    await sendingOnly.lettermint.messages.resend('m');
     for (const request of sendingOnly.requests) {
       expect(request.headers['x-lettermint-token']).toBe(SENDING_TOKEN);
       expect(request.headers).not.toHaveProperty('Authorization');
