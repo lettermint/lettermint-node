@@ -150,9 +150,20 @@ const results = await lettermint.emails.sendBatch([
 ]);
 ```
 
+Give each email an `idempotency_key` to retry a batch safely. A retry returns the original result of every email that was already accepted and sends only the rest. Keys must be unique within the batch. Reusing a key with different content throws a `ConflictError` and sends nothing. For a builder, spread its `build()` output:
+
+```ts
+await lettermint.emails.sendBatch([
+  { ...invoice, idempotency_key: `invoice-${invoice.id}` },
+  { ...welcome.to('john@example.com').build(), idempotency_key: 'welcome-john' },
+]);
+```
+
+Emails are accepted in order. If one fails, the emails before it may already be accepted; the thrown `ApiError` lists them in `error.details.accepted` (`{ index, message_id }` per email).
+
 ### Idempotency
 
-Pass an idempotency key to make retries safe. The API processes a key once, so a retry with the same key does not send the email again. The key applies only to the call it is passed to.
+Pass an idempotency key to make retries safe. The API processes a key once, so a retry with the same key does not send the email again. The key applies only to the call it is passed to. For per-email keys in a batch, see [Batch sending](#batch-sending).
 
 ```ts
 await lettermint.emails.send(message, { idempotencyKey: `order-${order.id}-confirmation` });

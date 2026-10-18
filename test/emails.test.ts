@@ -1,5 +1,11 @@
 import { inspect } from 'node:util';
-import { type EmailMessage, LettermintValidationError } from '../src';
+import {
+  type BatchEmailMessage,
+  ConflictError,
+  type EmailMessage,
+  LettermintValidationError,
+  ServerError,
+} from '../src';
 import { SENDING_TOKEN, TEAM_TOKEN, client, delay, json, rejection, thrown } from './helpers';
 
 const accepted = (id = 'message_1') => json(202, { message_id: id, status: 'pending' });
@@ -155,6 +161,80 @@ describe('emails.sendBatch', () => {
 
     await lettermint.emails.sendBatch([first]);
     expect(requests[1].headers).not.toHaveProperty('Idempotency-Key');
+  });
+
+  it('sends per-email idempotency keys in the items, apart from the request key', async () => {
+    const { lettermint, requests } = client({}, () =>
+      json(202, [
+        { message_id: 'm1', status: 'pending' },
+        { message_id: 'm2', status: 'pending' },
+        { message_id: 'm3', status: 'pending' },
+      ])
+    );
+    const plain: EmailMessage = { from: 'a@example.test', to: ['b@example.test'], subject: 'One' };
+    const keyed: BatchEmailMessage = { ...plain, subject: 'Two', idempotency_key: 'order-1' };
+    const builder = lettermint.emails.compose().from('a@example.test').to('c@example.test');
+    const messages: EmailMessage[] = [plain];
+    await lettermint.emails.sendBatch(
+      [...messages, keyed, { ...builder.subject('Three').build(), idempotency_key: 'order-2' }],
+      { idempotencyKey: 'batch-1' }
+    );
+    expect(requests[0].body).toEqual([
+      plain,
+      { ...plain, subject: 'Two', idempotency_key: 'order-1' },
+      {
+        from: 'a@example.test',
+        to: ['c@example.test'],
+        subject: 'Three',
+        idempotency_key: 'order-2',
+      },
+    ]);
+    expect(requests[0].headers['Idempotency-Key']).toBe('batch-1');
+
+    await lettermint.emails.sendBatch([keyed]);
+    expect(requests[1].body).toEqual([{ ...plain, subject: 'Two', idempotency_key: 'order-1' }]);
+    expect(requests[1].headers).not.toHaveProperty('Idempotency-Key');
+  });
+
+  it('does not take a per-email idempotency key on a single send', async () => {
+    const { lettermint, requests } = sendingClient();
+    const message: EmailMessage = {
+      from: 'a@example.test',
+      to: ['b@example.test'],
+      subject: 'x',
+      // @ts-expect-error idempotency_key is batch-only; send() takes the idempotencyKey option
+      idempotency_key: 'order-1',
+    };
+    expect(message).toBeDefined();
+    await lettermint.emails.send(
+      { from: 'a@example.test', to: ['b@example.test'], subject: 'x' },
+      { idempotencyKey: 'order-1' }
+    );
+    expect(requests[0].body).not.toHaveProperty('idempotency_key');
+    expect(requests[0].headers['Idempotency-Key']).toBe('order-1');
+  });
+
+  it('exposes an idempotency conflict and the emails accepted before a failure', async () => {
+    const message = { from: 'a@example.test', to: ['b@example.test'], subject: 'x' };
+    const conflict = {
+      error: { code: 'IDEMPOTENCY_CONFLICT', message: 'The idempotency key was reused.' },
+    };
+    const accepted = { accepted: [{ index: 0, message_id: 'm1' }] };
+    const { lettermint } = client({}, (_, index) =>
+      index === 0
+        ? json(409, conflict)
+        : json(500, { error: { code: 'INTERNAL_ERROR', message: 'Failed.', details: accepted } })
+    );
+    const batch = [
+      { ...message, idempotency_key: 'k1' },
+      { ...message, idempotency_key: 'k2' },
+    ];
+    const first = await rejection(lettermint.emails.sendBatch(batch));
+    expect(first).toBeInstanceOf(ConflictError);
+    expect(first).toMatchObject({ status: 409, code: 'IDEMPOTENCY_CONFLICT' });
+    const second = await rejection(lettermint.emails.sendBatch(batch));
+    expect(second).toBeInstanceOf(ServerError);
+    expect((second as ServerError).details).toEqual(accepted);
   });
 
   it('names the invalid message', async () => {
