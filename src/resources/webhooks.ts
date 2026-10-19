@@ -4,6 +4,7 @@ import type {
   ListWebhooksQuery,
   ListWebhooksResponse,
   MessageResponse,
+  RetryWebhookDeliveryResponse,
   StoreWebhookData,
   TestWebhookResponse,
   UpdateWebhookData,
@@ -60,6 +61,23 @@ export class WebhookDeliveries extends ApiResource {
   ): Promise<WebhookDeliveryData> {
     return this.request('GET /webhooks/{webhookId}/deliveries/{deliveryId}', {
       label: 'webhooks.deliveries.retrieve',
+      path: { webhookId, deliveryId },
+      options,
+    });
+  }
+
+  /**
+   * Sends the delivery's original payload to the webhook again now. The retry
+   * counts as a delivery attempt; if it fails with a retryable error,
+   * automatic retries continue.
+   */
+  retry(
+    webhookId: string,
+    deliveryId: string,
+    options?: RequestOptions
+  ): Promise<RetryWebhookDeliveryResponse> {
+    return this.request('POST /webhooks/{webhookId}/deliveries/{deliveryId}/retry', {
+      label: 'webhooks.deliveries.retry',
       path: { webhookId, deliveryId },
       options,
     });
