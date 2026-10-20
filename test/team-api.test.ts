@@ -6,6 +6,8 @@ import {
   type PendingSendMailResponse,
   type RetryWebhookDeliveryResponse,
   type RouteData,
+  type TeamInviteData,
+  ValidationError,
   type WebhookDeliveryData,
 } from '../src';
 import { type OperationKey, operations } from '../src/generated/operations';
@@ -21,18 +23,34 @@ const ids = {
   userId: 'user/id',
   webhookId: 'webhook_1',
   deliveryId: 'delivery_1',
+  inviteId: 'invite/1',
 };
 
 type Call = (lettermint: Lettermint) => Promise<unknown> | AsyncGenerator<unknown>;
 
+/**
+ * Operations without an SDK method yet. They are added by the next PRs in this
+ * stack, and the last one removes this list.
+ */
+const pending = [
+  'DELETE /team/members/{userId}',
+  'DELETE /team/roles/{roleId}',
+  'GET /team/roles/{roleId}',
+  'POST /team/roles',
+  'POST /team/roles/{roleId}/duplicate',
+  'PUT /team/roles/{roleId}',
+] as const satisfies readonly OperationKey[];
+type CoveredKey = Exclude<OperationKey, (typeof pending)[number]>;
+
 /** Every operation of the API, called through its public SDK method. */
-const calls: Record<OperationKey, Call> = {
+const calls: Record<CoveredKey, Call> = {
   'DELETE /domains/{domainId}': (l) => l.domains.delete(ids.domainId),
   'DELETE /projects/{projectId}': (l) => l.projects.delete(ids.projectId),
   'DELETE /projects/{projectId}/report-forwarding': (l) =>
     l.projects.reportForwarding.delete(ids.projectId),
   'DELETE /routes/{routeId}': (l) => l.routes.delete(ids.routeId),
   'DELETE /suppressions/{suppressionId}': (l) => l.suppressions.delete(ids.suppressionId),
+  'DELETE /team/invites/{inviteId}': (l) => l.team.invites.revoke(ids.inviteId),
   'DELETE /webhooks/{webhookId}': (l) => l.webhooks.delete(ids.webhookId),
   'GET /blocked-file-types': (l) => l.blockedFileTypes(),
   'GET /domains': (l) => l.domains.list(),
@@ -53,6 +71,8 @@ const calls: Record<OperationKey, Call> = {
   'GET /stats': (l) => l.stats.retrieve({ from: '2026-01-01', to: '2026-01-31' }),
   'GET /suppressions': (l) => l.suppressions.list(),
   'GET /team': (l) => l.team.retrieve(),
+  'GET /team/invites': (l) => l.team.invites.list(),
+  'GET /team/invites/{inviteId}': (l) => l.team.invites.retrieve(ids.inviteId),
   'GET /team/members': (l) => l.team.members.list(),
   'GET /team/members/{userId}': (l) => l.team.members.retrieve(ids.userId),
   'GET /team/roles': (l) => l.team.roles(),
@@ -92,6 +112,12 @@ const calls: Record<OperationKey, Call> = {
       scope: 'team',
       emails: ['blocked@example.test'],
     } as never),
+  'POST /team/invites': (l) =>
+    l.team.invites.create({
+      email: 'jane@example.test',
+      role_id: 'role_1',
+      project_access: { scope: 'all' },
+    }),
   'POST /webhooks': (l) =>
     l.webhooks.create({
       name: 'Hook',
@@ -117,6 +143,12 @@ const calls: Record<OperationKey, Call> = {
       role_id: 'role_1',
       project_access: { scope: 'all' },
     }),
+  'PUT /team/invites/{inviteId}': (l) =>
+    l.team.invites.update(ids.inviteId, {
+      email: 'jane@example.test',
+      role_id: 'role_1',
+      project_access: { scope: 'all' },
+    }),
   'PUT /webhooks/{webhookId}': (l) => l.webhooks.update(ids.webhookId, { basic_auth: null }),
 };
 
@@ -129,11 +161,11 @@ function responseFor(key: OperationKey): Response {
 
 describe('operation coverage', () => {
   it('has an SDK method for every operation in the generated table', () => {
-    expect(Object.keys(calls).sort()).toEqual(Object.keys(operations).sort());
-    expect(Object.keys(operations)).toHaveLength(60);
+    expect([...Object.keys(calls), ...pending].sort()).toEqual(Object.keys(operations).sort());
+    expect(Object.keys(operations)).toHaveLength(71);
   });
 
-  it.each(Object.keys(calls) as OperationKey[])('%s', async (key) => {
+  it.each(Object.keys(calls) as CoveredKey[])('%s', async (key) => {
     const operation = operations[key];
     const { lettermint, requests } = client({}, () => responseFor(key));
     await calls[key](lettermint);
@@ -339,6 +371,92 @@ describe('request bodies and options', () => {
   );
 });
 
+describe('team invites', () => {
+  const invite: TeamInviteData = {
+    id: 'invite/1',
+    email: 'jane@example.test',
+    role: { id: 'role_1', name: 'Member' },
+    project_access: { scope: 'selected', projects: [{ id: 'project_1', name: 'Production' }] },
+    created_at: '2026-10-20T09:00:00Z',
+  };
+  const body = {
+    email: 'jane@example.test',
+    role_id: 'role_1',
+    project_access: { scope: 'selected' as const, project_ids: ['project_1'] },
+  };
+
+  it('lists, retrieves, creates, updates and revokes invites with the team token', async () => {
+    const { lettermint, requests } = client({}, (request) => {
+      if (request.method === 'DELETE') return json(200, { message: 'Invite revoked.' });
+      if (request.method === 'POST') return json(201, invite);
+      if (request.path === '/team/invites') return json(200, { data: [invite], next_cursor: 'c2' });
+      return json(200, invite);
+    });
+
+    const page = await lettermint.team.invites.list({ page: { size: 10, cursor: 'c1' } });
+    expect(page).toEqual({ data: [invite], next_cursor: 'c2' });
+    const retrieved: TeamInviteData = await lettermint.team.invites.retrieve('invite/1');
+    expect(retrieved).toEqual(invite);
+    const created: TeamInviteData = await lettermint.team.invites.create(body);
+    expect(created).toEqual(invite);
+    const updated: TeamInviteData = await lettermint.team.invites.update('invite/1', {
+      ...body,
+      project_access: { scope: 'all' },
+    });
+    expect(updated).toEqual(invite);
+    const revoked = await lettermint.team.invites.revoke('invite/1');
+    expect(revoked).toEqual({ message: 'Invite revoked.' });
+
+    expect(requests.map((r) => `${r.method} ${r.url}`)).toEqual([
+      'GET https://api.lettermint.co/v1/team/invites?page%5Bsize%5D=10&page%5Bcursor%5D=c1',
+      'GET https://api.lettermint.co/v1/team/invites/invite%2F1',
+      'POST https://api.lettermint.co/v1/team/invites',
+      'PUT https://api.lettermint.co/v1/team/invites/invite%2F1',
+      'DELETE https://api.lettermint.co/v1/team/invites/invite%2F1',
+    ]);
+    for (const request of requests) {
+      expect(request.headers.Authorization).toBe(`Bearer ${TEAM_TOKEN}`);
+      expect(request.headers).not.toHaveProperty('x-lettermint-token');
+      expect(request.headers).not.toHaveProperty('Idempotency-Key');
+    }
+    expect(requests[2].body).toEqual(body);
+    expect(requests[2].headers['Content-Type']).toBe('application/json');
+    expect(requests[3].body).toEqual({ ...body, project_access: { scope: 'all' } });
+    for (const index of [0, 1, 4]) {
+      expect(requests[index].rawBody).toBeUndefined();
+      expect(requests[index].headers).not.toHaveProperty('Content-Type');
+    }
+  });
+
+  it('rejects an invite that conflicts with the team state', async () => {
+    const conflict = {
+      error: { code: 'owner_protected', message: 'The Owner role cannot be assigned.' },
+    };
+    const { lettermint } = client({}, () => json(409, conflict));
+    const error = await rejection(lettermint.team.invites.create(body));
+    expect(error).toBeInstanceOf(ConflictError);
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({
+      status: 409,
+      code: 'owner_protected',
+      message: 'The Owner role cannot be assigned.',
+    });
+  });
+
+  it('rejects invalid invite data', async () => {
+    const invalid = {
+      message: 'The email field must be a valid email address.',
+      errors: { email: ['The email field must be a valid email address.'] },
+    };
+    const { lettermint } = client({}, () => json(422, invalid));
+    const error = await rejection(
+      lettermint.team.invites.update('invite/1', { ...body, email: 'not-an-email' })
+    );
+    expect(error).toBeInstanceOf(ValidationError);
+    expect(error).toMatchObject({ status: 422, errors: invalid.errors });
+  });
+});
+
 describe('query parameters', () => {
   it('serializes nested objects to the bracket syntax', async () => {
     const { lettermint, requests } = client({}, () => json(200, { data: [], next_cursor: null }));
@@ -447,6 +565,7 @@ describe('pagination', () => {
     ['routes', (l: Lettermint) => l.routes.iterate('p')],
     ['suppressions', (l: Lettermint) => l.suppressions.iterate()],
     ['team members', (l: Lettermint) => l.team.members.iterate()],
+    ['team invites', (l: Lettermint) => l.team.invites.iterate()],
     ['webhooks', (l: Lettermint) => l.webhooks.iterate()],
     ['webhook deliveries', (l: Lettermint) => l.webhooks.deliveries.iterate('w')],
   ])('iterates %s', async (_, iterate) => {
@@ -508,6 +627,18 @@ describe('path parameters', () => {
     await expect(lettermint.webhooks.deliveries.retry('w', id as string)).rejects.toThrow(
       'webhooks.deliveries.retry: `deliveryId`'
     );
+    for (const call of [
+      (l: Lettermint) => l.team.invites.retrieve(id as string),
+      (l: Lettermint) =>
+        l.team.invites.update(id as string, {
+          email: 'jane@example.test',
+          role_id: 'role_1',
+          project_access: { scope: 'all' },
+        }),
+      (l: Lettermint) => l.team.invites.revoke(id as string),
+    ]) {
+      await expect(call(lettermint)).rejects.toThrow(/^team\.invites\.\w+: `inviteId` must be/);
+    }
     expect(fetch).not.toHaveBeenCalled();
   });
 });

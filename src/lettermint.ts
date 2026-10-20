@@ -68,7 +68,7 @@ export class Lettermint {
   public readonly stats: Stats;
   /** The suppression list. Needs `teamToken`. */
   public readonly suppressions: Suppressions;
-  /** The team and its members. Needs `teamToken`. */
+  /** The team, its members and its invitations. Needs `teamToken`. */
   public readonly team: Team;
   /** Webhook endpoints and their deliveries. Needs `teamToken`. */
   public readonly webhooks: Webhooks;

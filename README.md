@@ -259,6 +259,13 @@ const resent = await lettermint.messages.resend('message-id', { recipients: ['ja
 
 // Send a webhook delivery's original payload again now; automatic retries continue if it fails.
 await lettermint.webhooks.deliveries.retry('webhook-id', 'delivery-id');
+
+// Invite a person to the team; the API sends the invitation email.
+const invite = await lettermint.team.invites.create({
+  email: 'jane@example.com',
+  role_id: 'role-id',
+  project_access: { scope: 'selected', project_ids: [project.id] },
+});
 ```
 
 | Property | Methods |
@@ -272,6 +279,7 @@ await lettermint.webhooks.deliveries.retry('webhook-id', 'delivery-id');
 | `suppressions` | `list`, `iterate`, `create`, `delete` |
 | `team` | `retrieve`, `update`, `usage`, `roles` |
 | `team.members` | `list`, `iterate`, `retrieve`, `updateAssignment` |
+| `team.invites` | `list`, `iterate`, `retrieve`, `create`, `update`, `revoke` |
 | `webhooks` | `list`, `iterate`, `create`, `retrieve`, `update`, `delete`, `test`, `regenerateSecret` |
 | `webhooks.deliveries` | `list(webhookId)`, `iterate(webhookId)`, `retrieve(webhookId, deliveryId)`, `retry(webhookId, deliveryId)` |
 | (root) | `ping`, `analytics`, `analyticsPages`, `blockedFileTypes` |
