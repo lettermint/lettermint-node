@@ -266,6 +266,10 @@ const invite = await lettermint.team.invites.create({
   role_id: 'role-id',
   project_access: { scope: 'selected', project_ids: [project.id] },
 });
+
+// Create a custom role; delete it later and move its assignments to another role.
+const role = await lettermint.team.createRole({ name: 'Support', permissions: ['members:read'] });
+await lettermint.team.deleteRole(role.id, { replacement_role_id: 'other-role-id' });
 ```
 
 | Property | Methods |
@@ -277,7 +281,7 @@ const invite = await lettermint.team.invites.create({
 | `routes` | `list(projectId)`, `iterate(projectId)`, `create(projectId, …)`, `retrieve`, `update`, `delete`, `verifyInboundDomain` |
 | `stats` | `retrieve` |
 | `suppressions` | `list`, `iterate`, `create`, `delete` |
-| `team` | `retrieve`, `update`, `usage`, `roles` |
+| `team` | `retrieve`, `update`, `usage`, `roles`, `retrieveRole`, `createRole`, `updateRole`, `deleteRole`, `duplicateRole` |
 | `team.members` | `list`, `iterate`, `retrieve`, `updateAssignment` |
 | `team.invites` | `list`, `iterate`, `retrieve`, `create`, `update`, `revoke` |
 | `webhooks` | `list`, `iterate`, `create`, `retrieve`, `update`, `delete`, `test`, `regenerateSecret` |
