@@ -1,21 +1,27 @@
 import type {
+  CreateTeamInviteData,
   DeleteSuppressionResponse,
   GetStatsQuery,
   GetTeamQuery,
   ListSuppressionsQuery,
   ListSuppressionsResponse,
+  ListTeamInvitesQuery,
+  ListTeamInvitesResponse,
   ListTeamMembersQuery,
   ListTeamMembersResponse,
+  MessageResponse,
   StatsData,
   StoreSuppressionData,
   SuppressedRecipientData,
   SuppressionStoreResponse,
   TeamData,
+  TeamInviteData,
   TeamMemberData,
   TeamMutationResponse,
   TeamRoleListResponse,
   TeamUsageDetailData,
   UpdateTeamData,
+  UpdateTeamInviteData,
   UpdateTeamMemberAssignmentData,
 } from '../generated/types';
 import type { NestedQuery } from '../query';
@@ -117,15 +123,85 @@ export class TeamMembers extends ApiResource {
   }
 }
 
+/** Pending team invitations. Team token. */
+export class TeamInvites extends ApiResource {
+  /** @internal */
+  constructor(transport: Transport) {
+    super(transport, 'TeamInvites');
+  }
+
+  /** Lists pending invitations, one page at a time. */
+  list(
+    query?: NestedQuery<ListTeamInvitesQuery>,
+    options?: RequestOptions
+  ): Promise<ListTeamInvitesResponse> {
+    return this.request('GET /team/invites', { label: 'team.invites.list', query, options });
+  }
+
+  /** Iterates over every pending invitation, following `next_cursor`. */
+  iterate(
+    query?: NestedQuery<ListTeamInvitesQuery>,
+    options?: RequestOptions
+  ): AsyncGenerator<TeamInviteData, void, undefined> {
+    return this.paginate('GET /team/invites', { label: 'team.invites.iterate', query, options });
+  }
+
+  retrieve(inviteId: string, options?: RequestOptions): Promise<TeamInviteData> {
+    return this.request('GET /team/invites/{inviteId}', {
+      label: 'team.invites.retrieve',
+      path: { inviteId },
+      options,
+    });
+  }
+
+  /**
+   * Invites a person by email with a role and project access, and sends the
+   * invitation email. The team needs a free seat; the Owner role cannot be
+   * assigned.
+   */
+  create(body: CreateTeamInviteData, options?: RequestOptions): Promise<TeamInviteData> {
+    return this.request('POST /team/invites', { label: 'team.invites.create', body, options });
+  }
+
+  /**
+   * Replaces a pending invitation's email, role and project access. A new
+   * invitation email is sent only when the address changes.
+   */
+  update(
+    inviteId: string,
+    body: UpdateTeamInviteData,
+    options?: RequestOptions
+  ): Promise<TeamInviteData> {
+    return this.request('PUT /team/invites/{inviteId}', {
+      label: 'team.invites.update',
+      path: { inviteId },
+      body,
+      options,
+    });
+  }
+
+  /** Revokes a pending invitation. */
+  revoke(inviteId: string, options?: RequestOptions): Promise<MessageResponse> {
+    return this.request('DELETE /team/invites/{inviteId}', {
+      label: 'team.invites.revoke',
+      path: { inviteId },
+      options,
+    });
+  }
+}
+
 /** The team of the token. Team token. */
 export class Team extends ApiResource {
   /** Team members. */
   public readonly members: TeamMembers;
+  /** Pending team invitations. */
+  public readonly invites: TeamInvites;
 
   /** @internal */
   constructor(transport: Transport) {
     super(transport, 'Team');
     this.members = new TeamMembers(transport);
+    this.invites = new TeamInvites(transport);
   }
 
   retrieve(query?: NestedQuery<GetTeamQuery>, options?: RequestOptions): Promise<TeamData> {

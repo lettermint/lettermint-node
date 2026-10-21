@@ -247,6 +247,7 @@ describe('redaction', () => {
       lettermint.suppressions,
       lettermint.team,
       lettermint.team.members,
+      lettermint.team.invites,
       lettermint.webhooks,
       lettermint.webhooks.deliveries,
       lettermint.emails.compose().from('a@example.test').to('b@example.test').subject('Hi'),
