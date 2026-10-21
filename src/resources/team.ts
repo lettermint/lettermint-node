@@ -89,7 +89,10 @@ export class TeamMembers extends ApiResource {
     super(transport, 'TeamMembers');
   }
 
-  /** Lists team members, one page at a time. */
+  /**
+   * Lists team members, one page at a time. `filter: { project_id }` returns
+   * only the members who can access that project.
+   */
   list(
     query?: NestedQuery<ListTeamMembersQuery>,
     options?: RequestOptions
@@ -97,7 +100,7 @@ export class TeamMembers extends ApiResource {
     return this.request('GET /team/members', { label: 'team.members.list', query, options });
   }
 
-  /** Iterates over every team member, following `next_cursor`. */
+  /** Iterates over every team member, following `next_cursor`. Takes the same filter as `list`. */
   iterate(
     query?: NestedQuery<ListTeamMembersQuery>,
     options?: RequestOptions
@@ -123,6 +126,15 @@ export class TeamMembers extends ApiResource {
       label: 'team.members.updateAssignment',
       path: { userId },
       body,
+      options,
+    });
+  }
+
+  /** Removes a member from the team. The Owner cannot be removed. */
+  remove(userId: string, options?: RequestOptions): Promise<MessageResponse> {
+    return this.request('DELETE /team/members/{userId}', {
+      label: 'team.members.remove',
+      path: { userId },
       options,
     });
   }

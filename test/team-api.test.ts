@@ -3,6 +3,8 @@ import {
   ConflictError,
   type Lettermint,
   LettermintConfigError,
+  type MessageResponse,
+  NotFoundError,
   type PendingSendMailResponse,
   type RetryWebhookDeliveryResponse,
   type RouteData,
@@ -30,15 +32,8 @@ const ids = {
 
 type Call = (lettermint: Lettermint) => Promise<unknown> | AsyncGenerator<unknown>;
 
-/**
- * Operations without an SDK method yet. They are added by the next PRs in this
- * stack, and the last one removes this list.
- */
-const pending = ['DELETE /team/members/{userId}'] as const satisfies readonly OperationKey[];
-type CoveredKey = Exclude<OperationKey, (typeof pending)[number]>;
-
 /** Every operation of the API, called through its public SDK method. */
-const calls: Record<CoveredKey, Call> = {
+const calls: Record<OperationKey, Call> = {
   'DELETE /domains/{domainId}': (l) => l.domains.delete(ids.domainId),
   'DELETE /projects/{projectId}': (l) => l.projects.delete(ids.projectId),
   'DELETE /projects/{projectId}/report-forwarding': (l) =>
@@ -46,6 +41,7 @@ const calls: Record<CoveredKey, Call> = {
   'DELETE /routes/{routeId}': (l) => l.routes.delete(ids.routeId),
   'DELETE /suppressions/{suppressionId}': (l) => l.suppressions.delete(ids.suppressionId),
   'DELETE /team/invites/{inviteId}': (l) => l.team.invites.revoke(ids.inviteId),
+  'DELETE /team/members/{userId}': (l) => l.team.members.remove(ids.userId),
   'DELETE /team/roles/{roleId}': (l) => l.team.deleteRole(ids.roleId),
   'DELETE /webhooks/{webhookId}': (l) => l.webhooks.delete(ids.webhookId),
   'GET /blocked-file-types': (l) => l.blockedFileTypes(),
@@ -163,11 +159,11 @@ function responseFor(key: OperationKey): Response {
 
 describe('operation coverage', () => {
   it('has an SDK method for every operation in the generated table', () => {
-    expect([...Object.keys(calls), ...pending].sort()).toEqual(Object.keys(operations).sort());
+    expect(Object.keys(calls).sort()).toEqual(Object.keys(operations).sort());
     expect(Object.keys(operations)).toHaveLength(71);
   });
 
-  it.each(Object.keys(calls) as CoveredKey[])('%s', async (key) => {
+  it.each(Object.keys(calls) as OperationKey[])('%s', async (key) => {
     const operation = operations[key];
     const { lettermint, requests } = client({}, () => responseFor(key));
     await calls[key](lettermint);
@@ -371,6 +367,70 @@ describe('request bodies and options', () => {
       expect(result).toEqual(route);
     }
   );
+});
+
+describe('team members', () => {
+  it('removes a member with the team token', async () => {
+    const { lettermint, requests } = client({}, () => json(200, { message: 'Member removed.' }));
+    const result: MessageResponse = await lettermint.team.members.remove('user/id');
+    expect(result).toEqual({ message: 'Member removed.' });
+    expect(requests[0].method).toBe('DELETE');
+    expect(requests[0].url).toBe('https://api.lettermint.co/v1/team/members/user%2Fid');
+    expect(requests[0].headers.Authorization).toBe(`Bearer ${TEAM_TOKEN}`);
+    expect(requests[0].headers).not.toHaveProperty('x-lettermint-token');
+    expect(requests[0].headers).not.toHaveProperty('Idempotency-Key');
+    expect(requests[0].rawBody).toBeUndefined();
+    expect(requests[0].headers).not.toHaveProperty('Content-Type');
+  });
+
+  it('rejects the removal of the Owner', async () => {
+    const conflict = {
+      error: { code: 'owner_protected', message: 'The Owner cannot be removed.' },
+    };
+    const { lettermint } = client({}, () => json(409, conflict));
+    const error = await rejection(lettermint.team.members.remove('owner'));
+    expect(error).toBeInstanceOf(ConflictError);
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({
+      status: 409,
+      code: 'owner_protected',
+      message: 'The Owner cannot be removed.',
+    });
+  });
+
+  it('rejects the removal of an unknown member', async () => {
+    const { lettermint } = client({}, () => json(404, { message: 'Not found.' }));
+    const error = await rejection(lettermint.team.members.remove('missing'));
+    expect(error).toBeInstanceOf(NotFoundError);
+    expect(error).toMatchObject({ status: 404 });
+  });
+
+  it('filters the member list by project', async () => {
+    const pages: Record<string, unknown> = {
+      first: { data: [{ id: 'u1' }], next_cursor: 'c2' },
+      c2: { data: [{ id: 'u2' }], next_cursor: null },
+    };
+    const { lettermint, requests } = client({}, (request) =>
+      json(200, pages[request.query.get('page[cursor]') ?? 'first'])
+    );
+    await lettermint.team.members.list({ filter: { project_id: 'project/1' }, page: { size: 5 } });
+    expect(requests[0].url).toBe(
+      'https://api.lettermint.co/v1/team/members?filter%5Bproject_id%5D=project%2F1&page%5Bsize%5D=5'
+    );
+    const ids: string[] = [];
+    for await (const member of lettermint.team.members.iterate({
+      filter: { project_id: 'project/1' },
+    })) {
+      ids.push(member.id);
+    }
+    expect(ids).toEqual(['u1', 'u2']);
+    expect(requests.slice(1).map((r) => Object.fromEntries(r.query))).toEqual([
+      { 'filter[project_id]': 'project/1' },
+      { 'filter[project_id]': 'project/1', 'page[cursor]': 'c2' },
+    ]);
+    await lettermint.team.members.list();
+    expect(requests[3].url).toBe('https://api.lettermint.co/v1/team/members');
+  });
 });
 
 describe('team invites', () => {
@@ -766,6 +826,9 @@ describe('path parameters', () => {
     ]) {
       await expect(call(lettermint)).rejects.toThrow(/^team\.\w+Role: `roleId` must be/);
     }
+    await expect(lettermint.team.members.remove(id as string)).rejects.toThrow(
+      'team.members.remove: `userId` must be'
+    );
     expect(fetch).not.toHaveBeenCalled();
   });
 });
