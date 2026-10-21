@@ -1,6 +1,9 @@
 import type {
   CreateTeamInviteData,
+  CreateTeamRoleData,
   DeleteSuppressionResponse,
+  DeleteTeamRoleQuery,
+  DuplicateTeamRoleData,
   GetStatsQuery,
   GetTeamQuery,
   ListSuppressionsQuery,
@@ -18,11 +21,13 @@ import type {
   TeamInviteData,
   TeamMemberData,
   TeamMutationResponse,
+  TeamRoleData,
   TeamRoleListResponse,
   TeamUsageDetailData,
   UpdateTeamData,
   UpdateTeamInviteData,
   UpdateTeamMemberAssignmentData,
+  UpdateTeamRoleData,
 } from '../generated/types';
 import type { NestedQuery } from '../query';
 import type { RequestOptions, Transport } from '../transport';
@@ -220,5 +225,70 @@ export class Team extends ApiResource {
   /** The roles that can be assigned to members. */
   roles(options?: RequestOptions): Promise<TeamRoleListResponse> {
     return this.request('GET /team/roles', { label: 'team.roles', options });
+  }
+
+  retrieveRole(roleId: string, options?: RequestOptions): Promise<TeamRoleData> {
+    return this.request('GET /team/roles/{roleId}', {
+      label: 'team.retrieveRole',
+      path: { roleId },
+      options,
+    });
+  }
+
+  /**
+   * Creates a custom role. Needs a plan with custom roles. Include the
+   * permissions that the chosen permissions depend on; role names are unique.
+   */
+  createRole(body: CreateTeamRoleData, options?: RequestOptions): Promise<TeamRoleData> {
+    return this.request('POST /team/roles', { label: 'team.createRole', body, options });
+  }
+
+  /** Replaces a custom role's name, description and permissions. Built-in roles cannot be changed. */
+  updateRole(
+    roleId: string,
+    body: UpdateTeamRoleData,
+    options?: RequestOptions
+  ): Promise<TeamRoleData> {
+    return this.request('PUT /team/roles/{roleId}', {
+      label: 'team.updateRole',
+      path: { roleId },
+      body,
+      options,
+    });
+  }
+
+  /**
+   * Deletes a custom role. While the role is still assigned to members,
+   * invitations or SCIM groups, pass `replacement_role_id`: the role that
+   * receives those assignments. Built-in roles cannot be deleted.
+   */
+  deleteRole(
+    roleId: string,
+    query?: NestedQuery<DeleteTeamRoleQuery>,
+    options?: RequestOptions
+  ): Promise<MessageResponse> {
+    return this.request('DELETE /team/roles/{roleId}', {
+      label: 'team.deleteRole',
+      path: { roleId },
+      query,
+      options,
+    });
+  }
+
+  /**
+   * Copies a role under a new name. Without a `description`, the copy keeps
+   * the source role's description. The Owner role cannot be duplicated.
+   */
+  duplicateRole(
+    roleId: string,
+    body: DuplicateTeamRoleData,
+    options?: RequestOptions
+  ): Promise<TeamRoleData> {
+    return this.request('POST /team/roles/{roleId}/duplicate', {
+      label: 'team.duplicateRole',
+      path: { roleId },
+      body,
+      options,
+    });
   }
 }

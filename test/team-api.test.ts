@@ -7,6 +7,7 @@ import {
   type RetryWebhookDeliveryResponse,
   type RouteData,
   type TeamInviteData,
+  type TeamRoleData,
   ValidationError,
   type WebhookDeliveryData,
 } from '../src';
@@ -24,6 +25,7 @@ const ids = {
   webhookId: 'webhook_1',
   deliveryId: 'delivery_1',
   inviteId: 'invite/1',
+  roleId: 'role/1',
 };
 
 type Call = (lettermint: Lettermint) => Promise<unknown> | AsyncGenerator<unknown>;
@@ -32,14 +34,7 @@ type Call = (lettermint: Lettermint) => Promise<unknown> | AsyncGenerator<unknow
  * Operations without an SDK method yet. They are added by the next PRs in this
  * stack, and the last one removes this list.
  */
-const pending = [
-  'DELETE /team/members/{userId}',
-  'DELETE /team/roles/{roleId}',
-  'GET /team/roles/{roleId}',
-  'POST /team/roles',
-  'POST /team/roles/{roleId}/duplicate',
-  'PUT /team/roles/{roleId}',
-] as const satisfies readonly OperationKey[];
+const pending = ['DELETE /team/members/{userId}'] as const satisfies readonly OperationKey[];
 type CoveredKey = Exclude<OperationKey, (typeof pending)[number]>;
 
 /** Every operation of the API, called through its public SDK method. */
@@ -51,6 +46,7 @@ const calls: Record<CoveredKey, Call> = {
   'DELETE /routes/{routeId}': (l) => l.routes.delete(ids.routeId),
   'DELETE /suppressions/{suppressionId}': (l) => l.suppressions.delete(ids.suppressionId),
   'DELETE /team/invites/{inviteId}': (l) => l.team.invites.revoke(ids.inviteId),
+  'DELETE /team/roles/{roleId}': (l) => l.team.deleteRole(ids.roleId),
   'DELETE /webhooks/{webhookId}': (l) => l.webhooks.delete(ids.webhookId),
   'GET /blocked-file-types': (l) => l.blockedFileTypes(),
   'GET /domains': (l) => l.domains.list(),
@@ -76,6 +72,7 @@ const calls: Record<CoveredKey, Call> = {
   'GET /team/members': (l) => l.team.members.list(),
   'GET /team/members/{userId}': (l) => l.team.members.retrieve(ids.userId),
   'GET /team/roles': (l) => l.team.roles(),
+  'GET /team/roles/{roleId}': (l) => l.team.retrieveRole(ids.roleId),
   'GET /team/usage': (l) => l.team.usage(),
   'GET /webhooks': (l) => l.webhooks.list(),
   'GET /webhooks/{webhookId}': (l) => l.webhooks.retrieve(ids.webhookId),
@@ -118,6 +115,9 @@ const calls: Record<CoveredKey, Call> = {
       role_id: 'role_1',
       project_access: { scope: 'all' },
     }),
+  'POST /team/roles': (l) => l.team.createRole({ name: 'Support', permissions: ['members:read'] }),
+  'POST /team/roles/{roleId}/duplicate': (l) =>
+    l.team.duplicateRole(ids.roleId, { name: 'Support copy' }),
   'POST /webhooks': (l) =>
     l.webhooks.create({
       name: 'Hook',
@@ -149,6 +149,8 @@ const calls: Record<CoveredKey, Call> = {
       role_id: 'role_1',
       project_access: { scope: 'all' },
     }),
+  'PUT /team/roles/{roleId}': (l) =>
+    l.team.updateRole(ids.roleId, { name: 'Support', permissions: ['members:read'] }),
   'PUT /webhooks/{webhookId}': (l) => l.webhooks.update(ids.webhookId, { basic_auth: null }),
 };
 
@@ -457,6 +459,123 @@ describe('team invites', () => {
   });
 });
 
+describe('team roles', () => {
+  const role: TeamRoleData = {
+    id: 'role/1',
+    name: 'Support',
+    description: 'Answers customer questions.',
+    system_key: null,
+    permissions: ['members:read'],
+    assignable: true,
+  };
+
+  it('retrieves, creates, updates and duplicates roles with the team token', async () => {
+    const { lettermint, requests } = client({}, (request) =>
+      json(request.method === 'POST' ? 201 : 200, role)
+    );
+    const create = {
+      name: 'Support',
+      description: 'Answers customer questions.',
+      permissions: ['members:read' as const],
+    };
+
+    const results: TeamRoleData[] = [
+      await lettermint.team.retrieveRole('role/1'),
+      await lettermint.team.createRole(create),
+      await lettermint.team.createRole({ name: 'Billing', permissions: ['billing:manage'] }),
+      await lettermint.team.updateRole('role/1', { ...create, description: null }),
+      await lettermint.team.duplicateRole('role/1', { name: 'Support copy' }),
+      await lettermint.team.duplicateRole('role/1', { name: 'Support EU', description: 'EU' }),
+    ];
+    for (const result of results) expect(result).toEqual(role);
+
+    expect(requests.map((r) => `${r.method} ${r.url}`)).toEqual([
+      'GET https://api.lettermint.co/v1/team/roles/role%2F1',
+      'POST https://api.lettermint.co/v1/team/roles',
+      'POST https://api.lettermint.co/v1/team/roles',
+      'PUT https://api.lettermint.co/v1/team/roles/role%2F1',
+      'POST https://api.lettermint.co/v1/team/roles/role%2F1/duplicate',
+      'POST https://api.lettermint.co/v1/team/roles/role%2F1/duplicate',
+    ]);
+    for (const request of requests) {
+      expect(request.headers.Authorization).toBe(`Bearer ${TEAM_TOKEN}`);
+      expect(request.headers).not.toHaveProperty('x-lettermint-token');
+      expect(request.headers).not.toHaveProperty('Idempotency-Key');
+    }
+    expect(requests[0].rawBody).toBeUndefined();
+    expect(requests[1].body).toEqual(create);
+    expect(requests[2].body).toEqual({ name: 'Billing', permissions: ['billing:manage'] });
+    expect(requests[3].body).toEqual({ ...create, description: null });
+    expect(requests[4].body).toEqual({ name: 'Support copy' });
+    expect(requests[5].body).toEqual({ name: 'Support EU', description: 'EU' });
+  });
+
+  it.each(['Answers customer questions.', null, undefined])(
+    'reads the role description %p',
+    async (description) => {
+      const { description: _, ...rest } = role;
+      const body = description === undefined ? rest : { ...rest, description };
+      const { lettermint } = client({}, (request) =>
+        json(200, request.path === '/team/roles' ? { data: [body] } : body)
+      );
+      const result = await lettermint.team.retrieveRole('role/1');
+      const typed: string | null | undefined = result.description;
+      expect(typed).toBe(description);
+      expect((await lettermint.team.roles()).data[0].description).toBe(description);
+    }
+  );
+
+  it('deletes a role with or without a replacement role', async () => {
+    const { lettermint, requests } = client({}, () => json(200, { message: 'Role deleted.' }));
+    expect(await lettermint.team.deleteRole('role/1')).toEqual({ message: 'Role deleted.' });
+    await lettermint.team.deleteRole('role/1', { replacement_role_id: 'role/2' });
+    await lettermint.team.deleteRole('role/1', { replacement_role_id: null });
+
+    for (const request of requests) {
+      expect(request.method).toBe('DELETE');
+      expect(request.path).toBe('/team/roles/role%2F1');
+      expect(request.headers.Authorization).toBe(`Bearer ${TEAM_TOKEN}`);
+      expect(request.rawBody).toBeUndefined();
+    }
+    expect(requests[0].url).toBe('https://api.lettermint.co/v1/team/roles/role%2F1');
+    expect(requests[1].url).toBe(
+      'https://api.lettermint.co/v1/team/roles/role%2F1?replacement_role_id=role%2F2'
+    );
+    expect(requests[2].url).toBe('https://api.lettermint.co/v1/team/roles/role%2F1');
+  });
+
+  it('rejects a change to a built-in role', async () => {
+    const conflict = {
+      error: { code: 'built_in_role_immutable', message: 'Built-in roles cannot be changed.' },
+    };
+    const { lettermint } = client({}, () => json(409, conflict));
+    for (const call of [
+      () => lettermint.team.updateRole('role/1', { name: 'Admin', permissions: [] }),
+      () => lettermint.team.deleteRole('role/1'),
+    ]) {
+      const error = await rejection(call());
+      expect(error).toBeInstanceOf(ConflictError);
+      expect(error).toBeInstanceOf(ApiError);
+      expect(error).toMatchObject({
+        status: 409,
+        code: 'built_in_role_immutable',
+        message: 'Built-in roles cannot be changed.',
+      });
+    }
+  });
+
+  it('rejects a role delete without a required replacement role', async () => {
+    const invalid = {
+      message: 'The replacement role id field is required.',
+      errors: { replacement_role_id: ['The replacement role id field is required.'] },
+    };
+    const { lettermint } = client({}, () => json(422, invalid));
+    const error = await rejection(lettermint.team.deleteRole('role/1'));
+    expect(error).toBeInstanceOf(ValidationError);
+    expect(error).toMatchObject({ status: 422, errors: invalid.errors });
+  });
+});
+
 describe('query parameters', () => {
   it('serializes nested objects to the bracket syntax', async () => {
     const { lettermint, requests } = client({}, () => json(200, { data: [], next_cursor: null }));
@@ -638,6 +757,14 @@ describe('path parameters', () => {
       (l: Lettermint) => l.team.invites.revoke(id as string),
     ]) {
       await expect(call(lettermint)).rejects.toThrow(/^team\.invites\.\w+: `inviteId` must be/);
+    }
+    for (const call of [
+      (l: Lettermint) => l.team.retrieveRole(id as string),
+      (l: Lettermint) => l.team.updateRole(id as string, { name: 'Support', permissions: [] }),
+      (l: Lettermint) => l.team.deleteRole(id as string, { replacement_role_id: 'role_2' }),
+      (l: Lettermint) => l.team.duplicateRole(id as string, { name: 'Support copy' }),
+    ]) {
+      await expect(call(lettermint)).rejects.toThrow(/^team\.\w+Role: `roleId` must be/);
     }
     expect(fetch).not.toHaveBeenCalled();
   });
