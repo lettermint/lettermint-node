@@ -1,5 +1,18 @@
 # Changelog
 
+## [v3.2.0](https://github.com/lettermint/lettermint-node/compare/v3.1.0...v3.2.0) - 2026-10-23
+
+### What's Changed
+
+* feat: add messages resend by @bjarn in https://github.com/lettermint/lettermint-node/pull/39
+* feat: add per-email idempotency keys to batch send by @bjarn in https://github.com/lettermint/lettermint-node/pull/40
+* feat: add webhook delivery retry by @bjarn in https://github.com/lettermint/lettermint-node/pull/42
+* feat: add team invites by @bjarn in https://github.com/lettermint/lettermint-node/pull/43
+* feat: add team role management by @bjarn in https://github.com/lettermint/lettermint-node/pull/44
+* feat: add team member removal and a project filter for the member list by @bjarn in https://github.com/lettermint/lettermint-node/pull/45
+
+**Full Changelog**: https://github.com/lettermint/lettermint-node/compare/v3.1.0...v3.2.0
+
 ## [v3.1.0](https://github.com/lettermint/lettermint-node/compare/v3.0.0...v3.1.0) - 2026-10-11
 
 ### What's Changed
