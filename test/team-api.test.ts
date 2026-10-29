@@ -6,10 +6,13 @@ import {
   type MessageResponse,
   NotFoundError,
   type PendingSendMailResponse,
+  PermissionError,
   type ProjectApiToken,
   type ProjectApiTokenCreatedResponse,
   type RetryWebhookDeliveryResponse,
   type RouteData,
+  type TeamApiToken,
+  type TeamApiTokenCreatedResponse,
   type TeamInviteData,
   type TeamRoleData,
   ValidationError,
@@ -35,19 +38,8 @@ const ids = {
 
 type Call = (lettermint: Lettermint) => Promise<unknown> | AsyncGenerator<unknown>;
 
-/**
- * Operations that get their SDK method in the next PR of this stack (team API
- * tokens). That PR removes this list.
- */
-const pending = [
-  'DELETE /team/api-tokens/{tokenId}',
-  'GET /team/api-tokens',
-  'POST /team/api-tokens',
-] as const satisfies readonly OperationKey[];
-type CoveredKey = Exclude<OperationKey, (typeof pending)[number]>;
-
 /** Every operation of the API, called through its public SDK method. */
-const calls: Record<CoveredKey, Call> = {
+const calls: Record<OperationKey, Call> = {
   'DELETE /domains/{domainId}': (l) => l.domains.delete(ids.domainId),
   'DELETE /projects/{projectId}': (l) => l.projects.delete(ids.projectId),
   'DELETE /projects/{projectId}/api-tokens/{tokenId}': (l) =>
@@ -56,6 +48,7 @@ const calls: Record<CoveredKey, Call> = {
     l.projects.reportForwarding.delete(ids.projectId),
   'DELETE /routes/{routeId}': (l) => l.routes.delete(ids.routeId),
   'DELETE /suppressions/{suppressionId}': (l) => l.suppressions.delete(ids.suppressionId),
+  'DELETE /team/api-tokens/{tokenId}': (l) => l.team.apiTokens.delete(ids.tokenId),
   'DELETE /team/invites/{inviteId}': (l) => l.team.invites.revoke(ids.inviteId),
   'DELETE /team/members/{userId}': (l) => l.team.members.remove(ids.userId),
   'DELETE /team/roles/{roleId}': (l) => l.team.deleteRole(ids.roleId),
@@ -80,6 +73,7 @@ const calls: Record<CoveredKey, Call> = {
   'GET /stats': (l) => l.stats.retrieve({ from: '2026-01-01', to: '2026-01-31' }),
   'GET /suppressions': (l) => l.suppressions.list(),
   'GET /team': (l) => l.team.retrieve(),
+  'GET /team/api-tokens': (l) => l.team.apiTokens.list(),
   'GET /team/invites': (l) => l.team.invites.list(),
   'GET /team/invites/{inviteId}': (l) => l.team.invites.retrieve(ids.inviteId),
   'GET /team/members': (l) => l.team.members.list(),
@@ -124,6 +118,8 @@ const calls: Record<CoveredKey, Call> = {
       scope: 'team',
       emails: ['blocked@example.test'],
     } as never),
+  'POST /team/api-tokens': (l) =>
+    l.team.apiTokens.create({ name: 'Deploys', abilities: ['read:domains'] }),
   'POST /team/invites': (l) =>
     l.team.invites.create({
       email: 'jane@example.test',
@@ -178,11 +174,11 @@ function responseFor(key: OperationKey): Response {
 
 describe('operation coverage', () => {
   it('has an SDK method for every operation in the generated table', () => {
-    expect([...Object.keys(calls), ...pending].sort()).toEqual(Object.keys(operations).sort());
+    expect(Object.keys(calls).sort()).toEqual(Object.keys(operations).sort());
     expect(Object.keys(operations)).toHaveLength(77);
   });
 
-  it.each(Object.keys(calls) as CoveredKey[])('%s', async (key) => {
+  it.each(Object.keys(calls) as OperationKey[])('%s', async (key) => {
     const operation = operations[key];
     const { lettermint, requests } = client({}, () => responseFor(key));
     await calls[key](lettermint);
@@ -748,6 +744,109 @@ describe('project API tokens', () => {
   });
 });
 
+describe('team API tokens', () => {
+  const token: TeamApiToken = {
+    id: 'token/1',
+    name: 'Deploys',
+    abilities: ['read:domains', 'write:domains'],
+    allowed_ips: ['203.0.113.0/24'],
+    created_via: 'api',
+    expires_at: '2027-01-01T00:00:00Z',
+    last_used_at: null,
+    created_at: '2026-10-28T09:00:00Z',
+  };
+  const created: TeamApiTokenCreatedResponse = {
+    data: { ...token, token: 'lm_team_fixture_token_value' },
+    message: 'API token created.',
+  };
+
+  it('lists, creates and deletes team API tokens with the team token', async () => {
+    const { lettermint, requests } = client({}, (request) => {
+      if (request.method === 'DELETE') return json(200, { message: 'API token deleted.' });
+      if (request.method === 'POST') return json(201, created);
+      return json(200, { data: [token], next_cursor: 'c2' });
+    });
+
+    const page = await lettermint.team.apiTokens.list({
+      page: { size: 10, cursor: 'c1' },
+      sort: ['name'],
+    });
+    expect(page).toEqual({ data: [token], next_cursor: 'c2' });
+    const result: TeamApiTokenCreatedResponse = await lettermint.team.apiTokens.create({
+      name: 'Deploys',
+      abilities: ['read:domains', 'write:domains'],
+    });
+    expect(result).toEqual(created);
+    const value: string = result.data.token;
+    expect(value).toBe('lm_team_fixture_token_value');
+    await lettermint.team.apiTokens.create({
+      name: 'Nightly',
+      abilities: ['read:messages'],
+      expires_at: '2026-12-01T00:00:00Z',
+    });
+    await lettermint.team.apiTokens.create({
+      name: 'Until parent expires',
+      abilities: ['read:messages'],
+      expires_at: null,
+    });
+    const deleted: MessageResponse = await lettermint.team.apiTokens.delete('token/1');
+    expect(deleted).toEqual({ message: 'API token deleted.' });
+
+    expect(requests.map((r) => `${r.method} ${r.url}`)).toEqual([
+      'GET https://api.lettermint.co/v1/team/api-tokens?page%5Bsize%5D=10&page%5Bcursor%5D=c1&sort=name',
+      'POST https://api.lettermint.co/v1/team/api-tokens',
+      'POST https://api.lettermint.co/v1/team/api-tokens',
+      'POST https://api.lettermint.co/v1/team/api-tokens',
+      'DELETE https://api.lettermint.co/v1/team/api-tokens/token%2F1',
+    ]);
+    for (const request of requests) {
+      expect(request.headers.Authorization).toBe(`Bearer ${TEAM_TOKEN}`);
+      expect(request.headers).not.toHaveProperty('x-lettermint-token');
+      expect(request.headers).not.toHaveProperty('Idempotency-Key');
+    }
+    expect(requests[1].body).toEqual({
+      name: 'Deploys',
+      abilities: ['read:domains', 'write:domains'],
+    });
+    expect(requests[1].headers['Content-Type']).toBe('application/json');
+    expect(requests[2].body).toEqual({
+      name: 'Nightly',
+      abilities: ['read:messages'],
+      expires_at: '2026-12-01T00:00:00Z',
+    });
+    expect(requests[3].body).toEqual({
+      name: 'Until parent expires',
+      abilities: ['read:messages'],
+      expires_at: null,
+    });
+    for (const index of [0, 4]) {
+      expect(requests[index].rawBody).toBeUndefined();
+      expect(requests[index].headers).not.toHaveProperty('Content-Type');
+    }
+  });
+
+  it('rejects an ability that the requesting token does not have', async () => {
+    const invalid = {
+      message: 'The abilities field contains an ability that this token does not have.',
+      errors: { 'abilities.0': ['This token does not have the write:team ability.'] },
+    };
+    const { lettermint } = client({}, () => json(422, invalid));
+    const error = await rejection(
+      lettermint.team.apiTokens.create({ name: 'Billing', abilities: ['write:team'] })
+    );
+    expect(error).toBeInstanceOf(ValidationError);
+    expect(error).toMatchObject({ status: 422, errors: invalid.errors });
+  });
+
+  it('rejects the deletion of a token with abilities the requesting token lacks', async () => {
+    const forbidden = { message: 'This action is unauthorized.' };
+    const { lettermint } = client({}, () => json(403, forbidden));
+    const error = await rejection(lettermint.team.apiTokens.delete('token/1'));
+    expect(error).toBeInstanceOf(PermissionError);
+    expect(error).toMatchObject({ status: 403 });
+  });
+});
+
 describe('query parameters', () => {
   it('serializes nested objects to the bracket syntax', async () => {
     const { lettermint, requests } = client({}, () => json(200, { data: [], next_cursor: null }));
@@ -858,6 +957,7 @@ describe('pagination', () => {
     ['suppressions', (l: Lettermint) => l.suppressions.iterate()],
     ['team members', (l: Lettermint) => l.team.members.iterate()],
     ['team invites', (l: Lettermint) => l.team.invites.iterate()],
+    ['team API tokens', (l: Lettermint) => l.team.apiTokens.iterate()],
     ['webhooks', (l: Lettermint) => l.webhooks.iterate()],
     ['webhook deliveries', (l: Lettermint) => l.webhooks.deliveries.iterate('w')],
   ])('iterates %s', async (_, iterate) => {
@@ -954,6 +1054,9 @@ describe('path parameters', () => {
     }
     await expect(lettermint.projects.apiTokens.delete('p', id as string)).rejects.toThrow(
       'projects.apiTokens.delete: `tokenId` must be'
+    );
+    await expect(lettermint.team.apiTokens.delete(id as string)).rejects.toThrow(
+      'team.apiTokens.delete: `tokenId` must be'
     );
     expect(fetch).not.toHaveBeenCalled();
   });
