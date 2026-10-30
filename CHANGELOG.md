@@ -1,5 +1,15 @@
 # Changelog
 
+## [v3.3.0](https://github.com/lettermint/lettermint-node/compare/v3.2.0...v3.3.0) - 2026-10-30
+
+### What's Changed
+
+* feat: add the inbound.rejected webhook event by @bjarn in https://github.com/lettermint/lettermint-node/pull/47
+* feat: manage project API tokens by @bjarn in https://github.com/lettermint/lettermint-node/pull/48
+* feat: manage team API tokens by @bjarn in https://github.com/lettermint/lettermint-node/pull/49
+
+**Full Changelog**: https://github.com/lettermint/lettermint-node/compare/v3.2.0...v3.3.0
+
 ## [v3.2.0](https://github.com/lettermint/lettermint-node/compare/v3.1.0...v3.2.0) - 2026-10-23
 
 ### What's Changed
