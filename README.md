@@ -251,6 +251,12 @@ await lettermint.domains.verifyDnsRecords(domain.id);
 const project = await lettermint.projects.create({ name: 'Production' });
 console.log(project.api_token); // the new project's sending token, shown once
 
+// Create another sending token for the project. Its value is only returned once: store it now.
+// Use it to send through the API, or as the SMTP password when SMTP is enabled (see `created.smtp`).
+const created = await lettermint.projects.apiTokens.create(project.id, { name: 'Checkout service' });
+console.log(created.data.token);
+await lettermint.projects.apiTokens.delete(project.id, created.data.id);
+
 const stats = await lettermint.stats.retrieve({ from: '2026-10-01', to: '2026-10-31' });
 const html = await lettermint.messages.html('message-id');
 
@@ -282,6 +288,7 @@ await lettermint.team.members.remove('user-id');
 | `messages` | `list`, `iterate`, `retrieve`, `events`, `iterateEvents`, `source`, `html`, `text`, `reschedule`, `cancel`, `process`, `resend` |
 | `projects` | `list`, `iterate`, `create`, `retrieve`, `update`, `delete`, `rotateToken` |
 | `projects.reportForwarding` | `retrieve`, `update`, `delete`, `verify`, `resendCode` |
+| `projects.apiTokens` | `list(projectId)`, `iterate(projectId)`, `create(projectId, …)`, `delete(projectId, tokenId)` |
 | `routes` | `list(projectId)`, `iterate(projectId)`, `create(projectId, …)`, `retrieve`, `update`, `delete`, `verifyInboundDomain` |
 | `stats` | `retrieve` |
 | `suppressions` | `list`, `iterate`, `create`, `delete` |

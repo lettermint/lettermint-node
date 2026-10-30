@@ -6,6 +6,8 @@ import {
   type MessageResponse,
   NotFoundError,
   type PendingSendMailResponse,
+  type ProjectApiToken,
+  type ProjectApiTokenCreatedResponse,
   type RetryWebhookDeliveryResponse,
   type RouteData,
   type TeamInviteData,
@@ -28,14 +30,28 @@ const ids = {
   deliveryId: 'delivery_1',
   inviteId: 'invite/1',
   roleId: 'role/1',
+  tokenId: 'token/1',
 };
 
 type Call = (lettermint: Lettermint) => Promise<unknown> | AsyncGenerator<unknown>;
 
+/**
+ * Operations that get their SDK method in the next PR of this stack (team API
+ * tokens). That PR removes this list.
+ */
+const pending = [
+  'DELETE /team/api-tokens/{tokenId}',
+  'GET /team/api-tokens',
+  'POST /team/api-tokens',
+] as const satisfies readonly OperationKey[];
+type CoveredKey = Exclude<OperationKey, (typeof pending)[number]>;
+
 /** Every operation of the API, called through its public SDK method. */
-const calls: Record<OperationKey, Call> = {
+const calls: Record<CoveredKey, Call> = {
   'DELETE /domains/{domainId}': (l) => l.domains.delete(ids.domainId),
   'DELETE /projects/{projectId}': (l) => l.projects.delete(ids.projectId),
+  'DELETE /projects/{projectId}/api-tokens/{tokenId}': (l) =>
+    l.projects.apiTokens.delete(ids.projectId, ids.tokenId),
   'DELETE /projects/{projectId}/report-forwarding': (l) =>
     l.projects.reportForwarding.delete(ids.projectId),
   'DELETE /routes/{routeId}': (l) => l.routes.delete(ids.routeId),
@@ -56,6 +72,7 @@ const calls: Record<OperationKey, Call> = {
   'GET /ping': (l) => l.ping(),
   'GET /projects': (l) => l.projects.list(),
   'GET /projects/{projectId}': (l) => l.projects.retrieve(ids.projectId),
+  'GET /projects/{projectId}/api-tokens': (l) => l.projects.apiTokens.list(ids.projectId),
   'GET /projects/{projectId}/report-forwarding': (l) =>
     l.projects.reportForwarding.retrieve(ids.projectId),
   'GET /projects/{projectId}/routes': (l) => l.routes.list(ids.projectId),
@@ -87,6 +104,8 @@ const calls: Record<OperationKey, Call> = {
   'POST /messages/{messageId}/resend': (l) =>
     l.messages.resend(ids.messageId, { recipients: ['b@example.test'] }),
   'POST /projects': (l) => l.projects.create({ name: 'Production' }),
+  'POST /projects/{projectId}/api-tokens': (l) =>
+    l.projects.apiTokens.create(ids.projectId, { name: 'Checkout service' }),
   'POST /projects/{projectId}/report-forwarding/resend-code': (l) =>
     l.projects.reportForwarding.resendCode(ids.projectId),
   'POST /projects/{projectId}/report-forwarding/verify': (l) =>
@@ -159,11 +178,11 @@ function responseFor(key: OperationKey): Response {
 
 describe('operation coverage', () => {
   it('has an SDK method for every operation in the generated table', () => {
-    expect(Object.keys(calls).sort()).toEqual(Object.keys(operations).sort());
-    expect(Object.keys(operations)).toHaveLength(71);
+    expect([...Object.keys(calls), ...pending].sort()).toEqual(Object.keys(operations).sort());
+    expect(Object.keys(operations)).toHaveLength(77);
   });
 
-  it.each(Object.keys(calls) as OperationKey[])('%s', async (key) => {
+  it.each(Object.keys(calls) as CoveredKey[])('%s', async (key) => {
     const operation = operations[key];
     const { lettermint, requests } = client({}, () => responseFor(key));
     await calls[key](lettermint);
@@ -636,6 +655,99 @@ describe('team roles', () => {
   });
 });
 
+describe('project API tokens', () => {
+  const token: ProjectApiToken = {
+    id: 'token/1',
+    project_id: 'project/1',
+    name: 'Checkout service',
+    short_token: false,
+    created_via: 'api',
+    allowed_ips: [],
+    last_used_at: null,
+    created_at: '2026-10-28T09:00:00Z',
+  };
+  const created: ProjectApiTokenCreatedResponse = {
+    data: { ...token, token: 'lm_fixture_token_value' },
+    smtp: { host: 'smtp.lettermint.co', ports: [465, 587], username: 'lettermint' },
+    message: 'API token created.',
+  };
+
+  it('lists, creates and deletes project API tokens with the team token', async () => {
+    const { lettermint, requests } = client({}, (request) => {
+      if (request.method === 'DELETE') return json(200, { message: 'API token deleted.' });
+      if (request.method === 'POST') return json(201, created);
+      return json(200, { data: [token], next_cursor: 'c2' });
+    });
+
+    const page = await lettermint.projects.apiTokens.list('project/1', {
+      page: { size: 10, cursor: 'c1' },
+      sort: ['-created_at'],
+    });
+    expect(page).toEqual({ data: [token], next_cursor: 'c2' });
+    const result: ProjectApiTokenCreatedResponse = await lettermint.projects.apiTokens.create(
+      'project/1',
+      { name: 'Checkout service' }
+    );
+    expect(result).toEqual(created);
+    const value: string = result.data.token;
+    expect(value).toBe('lm_fixture_token_value');
+    await lettermint.projects.apiTokens.create('project/1', {
+      name: 'Printer',
+      short_token: true,
+    });
+    const deleted: MessageResponse = await lettermint.projects.apiTokens.delete(
+      'project/1',
+      'token/1'
+    );
+    expect(deleted).toEqual({ message: 'API token deleted.' });
+
+    expect(requests.map((r) => `${r.method} ${r.url}`)).toEqual([
+      'GET https://api.lettermint.co/v1/projects/project%2F1/api-tokens?page%5Bsize%5D=10&page%5Bcursor%5D=c1&sort=-created_at',
+      'POST https://api.lettermint.co/v1/projects/project%2F1/api-tokens',
+      'POST https://api.lettermint.co/v1/projects/project%2F1/api-tokens',
+      'DELETE https://api.lettermint.co/v1/projects/project%2F1/api-tokens/token%2F1',
+    ]);
+    for (const request of requests) {
+      expect(request.headers.Authorization).toBe(`Bearer ${TEAM_TOKEN}`);
+      expect(request.headers).not.toHaveProperty('x-lettermint-token');
+      expect(request.headers).not.toHaveProperty('Idempotency-Key');
+    }
+    expect(requests[1].body).toEqual({ name: 'Checkout service' });
+    expect(requests[1].headers['Content-Type']).toBe('application/json');
+    expect(requests[2].body).toEqual({ name: 'Printer', short_token: true });
+    for (const index of [0, 3]) {
+      expect(requests[index].rawBody).toBeUndefined();
+      expect(requests[index].headers).not.toHaveProperty('Content-Type');
+    }
+  });
+
+  it('reads a created token without SMTP settings', async () => {
+    const { lettermint } = client({}, () => json(201, { ...created, smtp: null }));
+    const result = await lettermint.projects.apiTokens.create('project/1', { name: 'API only' });
+    const smtp: ProjectApiTokenCreatedResponse['smtp'] = result.smtp;
+    expect(smtp).toBeNull();
+    expect(result.data.token).toBe('lm_fixture_token_value');
+  });
+
+  it('rejects invalid token data', async () => {
+    const invalid = {
+      message: 'The name field is required.',
+      errors: { name: ['The name field is required.'] },
+    };
+    const { lettermint } = client({}, () => json(422, invalid));
+    const error = await rejection(lettermint.projects.apiTokens.create('project/1', { name: '' }));
+    expect(error).toBeInstanceOf(ValidationError);
+    expect(error).toMatchObject({ status: 422, errors: invalid.errors });
+  });
+
+  it('rejects the deletion of an unknown token', async () => {
+    const { lettermint } = client({}, () => json(404, { message: 'Not found.' }));
+    const error = await rejection(lettermint.projects.apiTokens.delete('project/1', 'missing'));
+    expect(error).toBeInstanceOf(NotFoundError);
+    expect(error).toMatchObject({ status: 404 });
+  });
+});
+
 describe('query parameters', () => {
   it('serializes nested objects to the bracket syntax', async () => {
     const { lettermint, requests } = client({}, () => json(200, { data: [], next_cursor: null }));
@@ -741,6 +853,7 @@ describe('pagination', () => {
     ['messages', (l: Lettermint) => l.messages.iterate()],
     ['message events', (l: Lettermint) => l.messages.iterateEvents('m')],
     ['projects', (l: Lettermint) => l.projects.iterate()],
+    ['project API tokens', (l: Lettermint) => l.projects.apiTokens.iterate('p')],
     ['routes', (l: Lettermint) => l.routes.iterate('p')],
     ['suppressions', (l: Lettermint) => l.suppressions.iterate()],
     ['team members', (l: Lettermint) => l.team.members.iterate()],
@@ -828,6 +941,19 @@ describe('path parameters', () => {
     }
     await expect(lettermint.team.members.remove(id as string)).rejects.toThrow(
       'team.members.remove: `userId` must be'
+    );
+    for (const call of [
+      (l: Lettermint) => l.projects.apiTokens.list(id as string),
+      (l: Lettermint) => l.projects.apiTokens.iterate(id as string).next(),
+      (l: Lettermint) => l.projects.apiTokens.create(id as string, { name: 'Checkout service' }),
+      (l: Lettermint) => l.projects.apiTokens.delete(id as string, 'token_1'),
+    ]) {
+      await expect(call(lettermint)).rejects.toThrow(
+        /^projects\.apiTokens\.\w+: `projectId` must be/
+      );
+    }
+    await expect(lettermint.projects.apiTokens.delete('p', id as string)).rejects.toThrow(
+      'projects.apiTokens.delete: `tokenId` must be'
     );
     expect(fetch).not.toHaveBeenCalled();
   });

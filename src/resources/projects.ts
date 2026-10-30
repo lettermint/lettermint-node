@@ -1,9 +1,13 @@
 import type {
   GetProjectQuery,
   GetReportForwardingResponse,
+  ListProjectApiTokensQuery,
+  ListProjectApiTokensResponse,
   ListProjectsQuery,
   ListProjectsResponse,
   MessageResponse,
+  ProjectApiToken,
+  ProjectApiTokenCreatedResponse,
   ProjectCreatedData,
   ProjectData,
   ProjectListData,
@@ -11,6 +15,7 @@ import type {
   ReportForwardingRequest,
   ResendReportForwardingCodeResponse,
   RotateProjectTokenResponse,
+  StoreProjectApiTokenData,
   StoreProjectData,
   UpdateProjectData,
   UpdateReportForwardingResponse,
@@ -83,15 +88,87 @@ export class ReportForwarding extends ApiResource {
   }
 }
 
+/** Project API tokens (sending tokens) of a project. Team token. */
+export class ProjectApiTokens extends ApiResource {
+  /** @internal */
+  constructor(transport: Transport) {
+    super(transport, 'ProjectApiTokens');
+  }
+
+  /**
+   * Lists the API tokens of a project, one page at a time. The list holds
+   * token metadata only; a token's value is only returned when it is created.
+   */
+  list(
+    projectId: string,
+    query?: NestedQuery<ListProjectApiTokensQuery>,
+    options?: RequestOptions
+  ): Promise<ListProjectApiTokensResponse> {
+    return this.request('GET /projects/{projectId}/api-tokens', {
+      label: 'projects.apiTokens.list',
+      path: { projectId },
+      query,
+      options,
+    });
+  }
+
+  /** Iterates over every API token of a project, following `next_cursor`. */
+  iterate(
+    projectId: string,
+    query?: NestedQuery<ListProjectApiTokensQuery>,
+    options?: RequestOptions
+  ): AsyncGenerator<ProjectApiToken, void, undefined> {
+    return this.paginate('GET /projects/{projectId}/api-tokens', {
+      label: 'projects.apiTokens.iterate',
+      path: { projectId },
+      query,
+      options,
+    });
+  }
+
+  /**
+   * Creates an API token for a project. The response holds the token value
+   * (`data.token`) only once: store it, it cannot be read again. Use it to
+   * send through the API, or as the SMTP password when SMTP is enabled for
+   * the project (`smtp` then holds the SMTP settings, otherwise `null`).
+   * `short_token: true` creates a shorter token for devices that limit
+   * password length.
+   */
+  create(
+    projectId: string,
+    body: StoreProjectApiTokenData,
+    options?: RequestOptions
+  ): Promise<ProjectApiTokenCreatedResponse> {
+    return this.request('POST /projects/{projectId}/api-tokens', {
+      label: 'projects.apiTokens.create',
+      path: { projectId },
+      body,
+      options,
+    });
+  }
+
+  /** Deletes an API token of a project. The token stops working immediately. */
+  delete(projectId: string, tokenId: string, options?: RequestOptions): Promise<MessageResponse> {
+    return this.request('DELETE /projects/{projectId}/api-tokens/{tokenId}', {
+      label: 'projects.apiTokens.delete',
+      path: { projectId, tokenId },
+      options,
+    });
+  }
+}
+
 /** Projects. Team token. */
 export class Projects extends ApiResource {
   /** Report forwarding of a project. */
   public readonly reportForwarding: ReportForwarding;
+  /** API tokens of a project. */
+  public readonly apiTokens: ProjectApiTokens;
 
   /** @internal */
   constructor(transport: Transport) {
     super(transport, 'Projects');
     this.reportForwarding = new ReportForwarding(transport);
+    this.apiTokens = new ProjectApiTokens(transport);
   }
 
   /** Lists projects, one page at a time. */
@@ -150,7 +227,8 @@ export class Projects extends ApiResource {
   }
 
   /**
-   * Rotates the project's legacy sending token.
+   * Rotates the project's legacy sending token. Use `apiTokens` to list,
+   * create or delete specific tokens.
    * @deprecated The API marks this endpoint as legacy.
    */
   rotateToken(projectId: string, options?: RequestOptions): Promise<RotateProjectTokenResponse> {
