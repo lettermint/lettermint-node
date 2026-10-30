@@ -280,6 +280,16 @@ await lettermint.team.deleteRole(role.id, { replacement_role_id: 'other-role-id'
 // The members who can access a project (with access to all projects or selected for it).
 const members = await lettermint.team.members.list({ filter: { project_id: project.id } });
 await lettermint.team.members.remove('user-id');
+
+// Create a team token with fewer abilities. It can only have abilities that this token has, copies
+// this token's IP allowlist and can't outlive it. Its value is only returned once: store it now.
+const teamToken = await lettermint.team.apiTokens.create({
+  name: 'Deploys',
+  abilities: ['read:domains'],
+  expires_at: '2027-01-01T00:00:00Z',
+});
+console.log(teamToken.data.token);
+await lettermint.team.apiTokens.delete(teamToken.data.id);
 ```
 
 | Property | Methods |
@@ -295,6 +305,7 @@ await lettermint.team.members.remove('user-id');
 | `team` | `retrieve`, `update`, `usage`, `roles`, `retrieveRole`, `createRole`, `updateRole`, `deleteRole`, `duplicateRole` |
 | `team.members` | `list`, `iterate`, `retrieve`, `updateAssignment`, `remove` |
 | `team.invites` | `list`, `iterate`, `retrieve`, `create`, `update`, `revoke` |
+| `team.apiTokens` | `list`, `iterate`, `create`, `delete` |
 | `webhooks` | `list`, `iterate`, `create`, `retrieve`, `update`, `delete`, `test`, `regenerateSecret` |
 | `webhooks.deliveries` | `list(webhookId)`, `iterate(webhookId)`, `retrieve(webhookId, deliveryId)`, `retry(webhookId, deliveryId)` |
 | (root) | `ping`, `analytics`, `analyticsPages`, `blockedFileTypes` |

@@ -8,6 +8,8 @@ import type {
   GetTeamQuery,
   ListSuppressionsQuery,
   ListSuppressionsResponse,
+  ListTeamApiTokensQuery,
+  ListTeamApiTokensResponse,
   ListTeamInvitesQuery,
   ListTeamInvitesResponse,
   ListTeamMembersQuery,
@@ -15,8 +17,11 @@ import type {
   MessageResponse,
   StatsData,
   StoreSuppressionData,
+  StoreTeamApiTokenData,
   SuppressedRecipientData,
   SuppressionStoreResponse,
+  TeamApiToken,
+  TeamApiTokenCreatedResponse,
   TeamData,
   TeamInviteData,
   TeamMemberData,
@@ -207,18 +212,78 @@ export class TeamInvites extends ApiResource {
   }
 }
 
+/** Team API tokens. Team token. */
+export class TeamApiTokens extends ApiResource {
+  /** @internal */
+  constructor(transport: Transport) {
+    super(transport, 'TeamApiTokens');
+  }
+
+  /**
+   * Lists the team's API tokens, one page at a time. The list holds token
+   * metadata only; a token's value is only returned when it is created.
+   */
+  list(
+    query?: NestedQuery<ListTeamApiTokensQuery>,
+    options?: RequestOptions
+  ): Promise<ListTeamApiTokensResponse> {
+    return this.request('GET /team/api-tokens', { label: 'team.apiTokens.list', query, options });
+  }
+
+  /** Iterates over every team API token, following `next_cursor`. */
+  iterate(
+    query?: NestedQuery<ListTeamApiTokensQuery>,
+    options?: RequestOptions
+  ): AsyncGenerator<TeamApiToken, void, undefined> {
+    return this.paginate('GET /team/api-tokens', {
+      label: 'team.apiTokens.iterate',
+      query,
+      options,
+    });
+  }
+
+  /**
+   * Creates a team API token. The new token can only have abilities that the
+   * requesting token has. It copies the requesting token's IP allowlist, and
+   * it can't outlive the requesting token (`expires_at` defaults to its
+   * expiry). The response holds the token value (`data.token`) only once:
+   * store it, it cannot be read again.
+   */
+  create(
+    body: StoreTeamApiTokenData,
+    options?: RequestOptions
+  ): Promise<TeamApiTokenCreatedResponse> {
+    return this.request('POST /team/api-tokens', { label: 'team.apiTokens.create', body, options });
+  }
+
+  /**
+   * Deletes a team API token. The token stops working immediately. A token
+   * can only delete tokens whose abilities it also has.
+   */
+  delete(tokenId: string, options?: RequestOptions): Promise<MessageResponse> {
+    return this.request('DELETE /team/api-tokens/{tokenId}', {
+      label: 'team.apiTokens.delete',
+      path: { tokenId },
+      options,
+    });
+  }
+}
+
 /** The team of the token. Team token. */
 export class Team extends ApiResource {
   /** Team members. */
   public readonly members: TeamMembers;
   /** Pending team invitations. */
   public readonly invites: TeamInvites;
+  /** Team API tokens. */
+  public readonly apiTokens: TeamApiTokens;
 
   /** @internal */
   constructor(transport: Transport) {
     super(transport, 'Team');
     this.members = new TeamMembers(transport);
     this.invites = new TeamInvites(transport);
+    this.apiTokens = new TeamApiTokens(transport);
   }
 
   retrieve(query?: NestedQuery<GetTeamQuery>, options?: RequestOptions): Promise<TeamData> {

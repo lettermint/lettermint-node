@@ -15,7 +15,14 @@ export type { Domains } from './resources/domains';
 export type { Messages } from './resources/messages';
 export type { ProjectApiTokens, Projects, ReportForwarding } from './resources/projects';
 export type { Routes } from './resources/routes';
-export type { Stats, Suppressions, Team, TeamInvites, TeamMembers } from './resources/team';
+export type {
+  Stats,
+  Suppressions,
+  Team,
+  TeamApiTokens,
+  TeamInvites,
+  TeamMembers,
+} from './resources/team';
 export type { WebhookDeliveries, Webhooks } from './resources/webhooks';
 export type { FetchFunction, IdempotentRequestOptions, RequestOptions } from './transport';
 export type { NestedQuery } from './query';
