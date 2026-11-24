@@ -90,3 +90,15 @@ jobs:
           name: build-artifacts
           path: dist/
           retention-days: 7
+
+  # The one check branch protection requires. It fails when a job above failed or
+  # was cancelled; skipped jobs count as passed.
+  ci:
+    name: ci
+    if: ${{ always() }}
+    needs: [test, build]
+    runs-on: ubuntu-slim
+    steps:
+      - name: Fail when a job failed or was cancelled
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: exit 1
