@@ -29,6 +29,7 @@ import type {
   TeamRoleData,
   TeamRoleListResponse,
   TeamUsageDetailData,
+  UpdateTeamApiTokenData,
   UpdateTeamData,
   UpdateTeamInviteData,
   UpdateTeamMemberAssignmentData,
@@ -254,6 +255,24 @@ export class TeamApiTokens extends ApiResource {
     options?: RequestOptions
   ): Promise<TeamApiTokenCreatedResponse> {
     return this.request('POST /team/api-tokens', { label: 'team.apiTokens.create', body, options });
+  }
+
+  /**
+   * Renames a team API token or replaces its abilities. Send only the fields
+   * to change. `abilities` replaces the token's complete list, and each
+   * ability must also be held by the requesting token.
+   */
+  update(
+    tokenId: string,
+    body: UpdateTeamApiTokenData,
+    options?: RequestOptions
+  ): Promise<TeamApiToken> {
+    return this.request('PUT /team/api-tokens/{tokenId}', {
+      label: 'team.apiTokens.update',
+      path: { tokenId },
+      body,
+      options,
+    });
   }
 
   /**
