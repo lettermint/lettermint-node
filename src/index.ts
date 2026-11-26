@@ -13,7 +13,12 @@ export type {
 } from './emails';
 export type { Domains } from './resources/domains';
 export type { Messages } from './resources/messages';
-export type { ProjectApiTokens, Projects, ReportForwarding } from './resources/projects';
+export type {
+  ProjectApiTokens,
+  Projects,
+  ReportForwarding,
+  TrackingDomain,
+} from './resources/projects';
 export type { Routes } from './resources/routes';
 export type {
   Stats,

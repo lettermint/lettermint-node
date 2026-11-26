@@ -265,6 +265,12 @@ const created = await lettermint.projects.apiTokens.create(project.id, { name: '
 console.log(created.data.token);
 await lettermint.projects.apiTokens.delete(project.id, created.data.id);
 
+// Use your own domain for open and click tracking links: add a CNAME record that points to
+// `cname_target`, then check it. A failed check throws a ValidationError whose `body` holds the outcome.
+const tracking = await lettermint.projects.trackingDomain.update(project.id, { domain: 'track.acme.com' });
+console.log(tracking.data.cname_target);
+await lettermint.projects.trackingDomain.verify(project.id);
+
 const stats = await lettermint.stats.retrieve({ from: '2026-10-01', to: '2026-10-31' });
 const html = await lettermint.messages.html('message-id');
 
@@ -308,6 +314,7 @@ await lettermint.team.apiTokens.delete(teamToken.data.id);
 | `messages` | `list`, `iterate`, `retrieve`, `events`, `iterateEvents`, `source`, `html`, `text`, `reschedule`, `cancel`, `process`, `resend` |
 | `projects` | `list`, `iterate`, `create`, `retrieve`, `update`, `delete`, `rotateToken` |
 | `projects.reportForwarding` | `retrieve`, `update`, `delete`, `verify`, `resendCode` |
+| `projects.trackingDomain` | `retrieve`, `update`, `delete`, `verify` |
 | `projects.apiTokens` | `list(projectId)`, `iterate(projectId)`, `create(projectId, …)`, `delete(projectId, tokenId)` |
 | `routes` | `list(projectId)`, `iterate(projectId)`, `create(projectId, …)`, `retrieve`, `update`, `delete`, `verifyInboundDomain` |
 | `stats` | `retrieve` |

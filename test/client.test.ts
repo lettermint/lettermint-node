@@ -242,6 +242,7 @@ describe('redaction', () => {
       lettermint.messages,
       lettermint.projects,
       lettermint.projects.reportForwarding,
+      lettermint.projects.trackingDomain,
       lettermint.routes,
       lettermint.stats,
       lettermint.suppressions,
