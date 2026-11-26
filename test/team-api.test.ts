@@ -38,8 +38,24 @@ const ids = {
 
 type Call = (lettermint: Lettermint) => Promise<unknown> | AsyncGenerator<unknown>;
 
+/**
+ * Operations that get their SDK method in the next PRs of this stack (DKIM
+ * upgrade and rotation, project tracking domains). Those PRs remove this list.
+ */
+const pending = [
+  'DELETE /domains/{domainId}/dkim/upgrade',
+  'POST /domains/{domainId}/dkim/rotate',
+  'POST /domains/{domainId}/dkim/upgrade',
+  'POST /domains/{domainId}/dkim/upgrade/activate',
+  'DELETE /projects/{projectId}/tracking-domain',
+  'GET /projects/{projectId}/tracking-domain',
+  'POST /projects/{projectId}/tracking-domain/verify',
+  'PUT /projects/{projectId}/tracking-domain',
+] as const satisfies readonly OperationKey[];
+type CoveredKey = Exclude<OperationKey, (typeof pending)[number]>;
+
 /** Every operation of the API, called through its public SDK method. */
-const calls: Record<OperationKey, Call> = {
+const calls: Record<CoveredKey, Call> = {
   'DELETE /domains/{domainId}': (l) => l.domains.delete(ids.domainId),
   'DELETE /projects/{projectId}': (l) => l.projects.delete(ids.projectId),
   'DELETE /projects/{projectId}/api-tokens/{tokenId}': (l) =>
@@ -154,6 +170,8 @@ const calls: Record<OperationKey, Call> = {
       role_id: 'role_1',
       project_access: { scope: 'all' },
     }),
+  'PUT /team/api-tokens/{tokenId}': (l) =>
+    l.team.apiTokens.update(ids.tokenId, { name: 'Deploys' }),
   'PUT /team/invites/{inviteId}': (l) =>
     l.team.invites.update(ids.inviteId, {
       email: 'jane@example.test',
@@ -174,11 +192,11 @@ function responseFor(key: OperationKey): Response {
 
 describe('operation coverage', () => {
   it('has an SDK method for every operation in the generated table', () => {
-    expect(Object.keys(calls).sort()).toEqual(Object.keys(operations).sort());
-    expect(Object.keys(operations)).toHaveLength(77);
+    expect([...Object.keys(calls), ...pending].sort()).toEqual(Object.keys(operations).sort());
+    expect(Object.keys(operations)).toHaveLength(86);
   });
 
-  it.each(Object.keys(calls) as OperationKey[])('%s', async (key) => {
+  it.each(Object.keys(calls) as CoveredKey[])('%s', async (key) => {
     const operation = operations[key];
     const { lettermint, requests } = client({}, () => responseFor(key));
     await calls[key](lettermint);
@@ -825,6 +843,57 @@ describe('team API tokens', () => {
     }
   });
 
+  it('updates a team API token with the team token', async () => {
+    const renamed: TeamApiToken = { ...token, name: 'Deploys (CI)' };
+    const { lettermint, requests } = client({}, () => json(200, renamed));
+
+    const result: TeamApiToken = await lettermint.team.apiTokens.update('token/1', {
+      name: 'Deploys (CI)',
+    });
+    expect(result).toEqual(renamed);
+    await lettermint.team.apiTokens.update('token/1', { abilities: ['read:domains'] });
+    await lettermint.team.apiTokens.update('token/1', {
+      name: 'Read only',
+      abilities: ['read:domains', 'read:messages'],
+    });
+    await lettermint.team.apiTokens.update('token/1', {});
+
+    for (const request of requests) {
+      expect(request.method).toBe('PUT');
+      expect(request.url).toBe('https://api.lettermint.co/v1/team/api-tokens/token%2F1');
+      expect(request.headers.Authorization).toBe(`Bearer ${TEAM_TOKEN}`);
+      expect(request.headers).not.toHaveProperty('x-lettermint-token');
+      expect(request.headers).not.toHaveProperty('Idempotency-Key');
+      expect(request.headers['Content-Type']).toBe('application/json');
+    }
+    expect(requests.map((r) => r.body)).toEqual([
+      { name: 'Deploys (CI)' },
+      { abilities: ['read:domains'] },
+      { name: 'Read only', abilities: ['read:domains', 'read:messages'] },
+      {},
+    ]);
+  });
+
+  it('rejects an update with an ability that the requesting token does not have', async () => {
+    const invalid = {
+      message: 'The abilities field contains an ability that this token does not have.',
+      errors: { 'abilities.0': ['This token does not have the write:team ability.'] },
+    };
+    const { lettermint } = client({}, () => json(422, invalid));
+    const error = await rejection(
+      lettermint.team.apiTokens.update('token/1', { abilities: ['write:team'] })
+    );
+    expect(error).toBeInstanceOf(ValidationError);
+    expect(error).toMatchObject({ status: 422, errors: invalid.errors });
+  });
+
+  it('rejects an update of an unknown token', async () => {
+    const { lettermint } = client({}, () => json(404, { message: 'Not found.' }));
+    const error = await rejection(lettermint.team.apiTokens.update('missing', { name: 'x' }));
+    expect(error).toBeInstanceOf(NotFoundError);
+    expect(error).toMatchObject({ status: 404 });
+  });
+
   it('rejects an ability that the requesting token does not have', async () => {
     const invalid = {
       message: 'The abilities field contains an ability that this token does not have.',
@@ -1057,6 +1126,9 @@ describe('path parameters', () => {
     );
     await expect(lettermint.team.apiTokens.delete(id as string)).rejects.toThrow(
       'team.apiTokens.delete: `tokenId` must be'
+    );
+    await expect(lettermint.team.apiTokens.update(id as string, { name: 'x' })).rejects.toThrow(
+      'team.apiTokens.update: `tokenId` must be'
     );
     expect(fetch).not.toHaveBeenCalled();
   });

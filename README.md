@@ -289,6 +289,8 @@ const teamToken = await lettermint.team.apiTokens.create({
   expires_at: '2027-01-01T00:00:00Z',
 });
 console.log(teamToken.data.token);
+// Rename it or replace its abilities. `abilities` replaces the whole list; this token must have each one.
+await lettermint.team.apiTokens.update(teamToken.data.id, { abilities: ['read:domains', 'read:messages'] });
 await lettermint.team.apiTokens.delete(teamToken.data.id);
 ```
 
@@ -305,7 +307,7 @@ await lettermint.team.apiTokens.delete(teamToken.data.id);
 | `team` | `retrieve`, `update`, `usage`, `roles`, `retrieveRole`, `createRole`, `updateRole`, `deleteRole`, `duplicateRole` |
 | `team.members` | `list`, `iterate`, `retrieve`, `updateAssignment`, `remove` |
 | `team.invites` | `list`, `iterate`, `retrieve`, `create`, `update`, `revoke` |
-| `team.apiTokens` | `list`, `iterate`, `create`, `delete` |
+| `team.apiTokens` | `list`, `iterate`, `create`, `update`, `delete` |
 | `webhooks` | `list`, `iterate`, `create`, `retrieve`, `update`, `delete`, `test`, `regenerateSecret` |
 | `webhooks.deliveries` | `list(webhookId)`, `iterate(webhookId)`, `retrieve(webhookId, deliveryId)`, `retry(webhookId, deliveryId)` |
 | (root) | `ping`, `analytics`, `analyticsPages`, `blockedFileTypes` |
