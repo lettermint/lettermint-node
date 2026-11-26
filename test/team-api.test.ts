@@ -12,6 +12,10 @@ import {
   PermissionError,
   type ProjectApiToken,
   type ProjectApiTokenCreatedResponse,
+  type ProjectData,
+  type ProjectTrackingDomain,
+  type ProjectTrackingDomainMutationResponse,
+  type ProjectTrackingDomainVerificationResponse,
   type RetryWebhookDeliveryResponse,
   type RouteData,
   type TeamApiToken,
@@ -41,20 +45,8 @@ const ids = {
 
 type Call = (lettermint: Lettermint) => Promise<unknown> | AsyncGenerator<unknown>;
 
-/**
- * Operations that get their SDK method in the next PR of this stack (project
- * tracking domains). That PR removes this list.
- */
-const pending = [
-  'DELETE /projects/{projectId}/tracking-domain',
-  'GET /projects/{projectId}/tracking-domain',
-  'POST /projects/{projectId}/tracking-domain/verify',
-  'PUT /projects/{projectId}/tracking-domain',
-] as const satisfies readonly OperationKey[];
-type CoveredKey = Exclude<OperationKey, (typeof pending)[number]>;
-
 /** Every operation of the API, called through its public SDK method. */
-const calls: Record<CoveredKey, Call> = {
+const calls: Record<OperationKey, Call> = {
   'DELETE /domains/{domainId}': (l) => l.domains.delete(ids.domainId),
   'DELETE /domains/{domainId}/dkim/upgrade': (l) => l.domains.cancelDkimUpgrade(ids.domainId),
   'DELETE /projects/{projectId}': (l) => l.projects.delete(ids.projectId),
@@ -62,6 +54,8 @@ const calls: Record<CoveredKey, Call> = {
     l.projects.apiTokens.delete(ids.projectId, ids.tokenId),
   'DELETE /projects/{projectId}/report-forwarding': (l) =>
     l.projects.reportForwarding.delete(ids.projectId),
+  'DELETE /projects/{projectId}/tracking-domain': (l) =>
+    l.projects.trackingDomain.delete(ids.projectId),
   'DELETE /routes/{routeId}': (l) => l.routes.delete(ids.routeId),
   'DELETE /suppressions/{suppressionId}': (l) => l.suppressions.delete(ids.suppressionId),
   'DELETE /team/api-tokens/{tokenId}': (l) => l.team.apiTokens.delete(ids.tokenId),
@@ -85,6 +79,8 @@ const calls: Record<CoveredKey, Call> = {
   'GET /projects/{projectId}/report-forwarding': (l) =>
     l.projects.reportForwarding.retrieve(ids.projectId),
   'GET /projects/{projectId}/routes': (l) => l.routes.list(ids.projectId),
+  'GET /projects/{projectId}/tracking-domain': (l) =>
+    l.projects.trackingDomain.retrieve(ids.projectId),
   'GET /routes/{routeId}': (l) => l.routes.retrieve(ids.routeId),
   'GET /stats': (l) => l.stats.retrieve({ from: '2026-01-01', to: '2026-01-31' }),
   'GET /suppressions': (l) => l.suppressions.list(),
@@ -127,6 +123,8 @@ const calls: Record<CoveredKey, Call> = {
   'POST /projects/{projectId}/rotate-token': (l) => l.projects.rotateToken(ids.projectId),
   'POST /projects/{projectId}/routes': (l) =>
     l.routes.create(ids.projectId, { name: 'Inbound', route_type: 'inbound' } as never),
+  'POST /projects/{projectId}/tracking-domain/verify': (l) =>
+    l.projects.trackingDomain.verify(ids.projectId),
   'POST /routes/{routeId}/verify-inbound-domain': (l) => l.routes.verifyInboundDomain(ids.routeId),
   'POST /send': (l) =>
     l.emails.send({ from: 'a@example.test', to: ['b@example.test'], subject: 'x' }),
@@ -167,6 +165,8 @@ const calls: Record<CoveredKey, Call> = {
     l.projects.reportForwarding.update(ids.projectId, {
       destination: 'reports@example.test',
     } as never),
+  'PUT /projects/{projectId}/tracking-domain': (l) =>
+    l.projects.trackingDomain.update(ids.projectId, { domain: 'track.example.test' }),
   'PUT /routes/{routeId}': (l) => l.routes.update(ids.routeId, { name: 'Renamed' } as never),
   'PUT /team': (l) => l.team.update({ name: 'Acme' } as never),
   'PUT /team/members/{userId}/assignment': (l) =>
@@ -196,11 +196,11 @@ function responseFor(key: OperationKey): Response {
 
 describe('operation coverage', () => {
   it('has an SDK method for every operation in the generated table', () => {
-    expect([...Object.keys(calls), ...pending].sort()).toEqual(Object.keys(operations).sort());
+    expect(Object.keys(calls).sort()).toEqual(Object.keys(operations).sort());
     expect(Object.keys(operations)).toHaveLength(86);
   });
 
-  it.each(Object.keys(calls) as CoveredKey[])('%s', async (key) => {
+  it.each(Object.keys(calls) as OperationKey[])('%s', async (key) => {
     const operation = operations[key];
     const { lettermint, requests } = client({}, () => responseFor(key));
     await calls[key](lettermint);
@@ -466,6 +466,123 @@ describe('DKIM upgrade and rotation', () => {
     const error = await rejection(lettermint.domains.activateDkimUpgrade('domain/1'));
     expect(error).toBeInstanceOf(ValidationError);
     expect(error).toMatchObject({ status: 422, code: 'DKIM_UPGRADE_NOT_READY' });
+  });
+});
+
+describe('project tracking domains', () => {
+  const trackingDomain: ProjectTrackingDomain = {
+    domain: 'track.acme.test',
+    verified: false,
+    active: false,
+    verified_at: null,
+    last_verification_at: null,
+    cname_target: 'track.lettermint.co',
+  };
+  const verification: ProjectTrackingDomainVerificationResponse = {
+    data: {
+      domain: 'track.acme.test',
+      verified: true,
+      verified_at: '2026-11-20T09:00:00Z',
+      expected_cname: 'track.lettermint.co',
+      found_cname: 'track.lettermint.co',
+      temporary_error: false,
+    },
+    message: 'The tracking domain is verified.',
+  };
+
+  it('retrieves, sets, verifies and removes the tracking domain with the team token', async () => {
+    const updated: ProjectTrackingDomainMutationResponse = {
+      data: trackingDomain,
+      message: 'Tracking domain updated.',
+    };
+    const { lettermint, requests } = client({}, (request) => {
+      if (request.method === 'DELETE') return new Response(null, { status: 204 });
+      if (request.method === 'PUT') return json(200, updated);
+      if (request.method === 'POST') return json(200, verification);
+      return json(200, trackingDomain);
+    });
+
+    const current: ProjectTrackingDomain =
+      await lettermint.projects.trackingDomain.retrieve('project/1');
+    expect(current).toEqual(trackingDomain);
+    const result: ProjectTrackingDomainMutationResponse =
+      await lettermint.projects.trackingDomain.update('project/1', { domain: 'track.acme.test' });
+    expect(result).toEqual(updated);
+    const verified: ProjectTrackingDomainVerificationResponse =
+      await lettermint.projects.trackingDomain.verify('project/1');
+    expect(verified).toEqual(verification);
+    const removed: undefined = await lettermint.projects.trackingDomain.delete('project/1');
+    expect(removed).toBeUndefined();
+
+    expect(requests.map((r) => `${r.method} ${r.url}`)).toEqual([
+      'GET https://api.lettermint.co/v1/projects/project%2F1/tracking-domain',
+      'PUT https://api.lettermint.co/v1/projects/project%2F1/tracking-domain',
+      'POST https://api.lettermint.co/v1/projects/project%2F1/tracking-domain/verify',
+      'DELETE https://api.lettermint.co/v1/projects/project%2F1/tracking-domain',
+    ]);
+    for (const request of requests) {
+      expect(request.headers.Authorization).toBe(`Bearer ${TEAM_TOKEN}`);
+      expect(request.headers).not.toHaveProperty('x-lettermint-token');
+      expect(request.headers).not.toHaveProperty('Idempotency-Key');
+    }
+    expect(requests[1].body).toEqual({ domain: 'track.acme.test' });
+    expect(requests[1].headers['Content-Type']).toBe('application/json');
+    for (const index of [0, 2, 3]) {
+      expect(requests[index].rawBody).toBeUndefined();
+      expect(requests[index].headers).not.toHaveProperty('Content-Type');
+    }
+  });
+
+  it('reads a project that uses the Lettermint tracking domain', async () => {
+    const { lettermint } = client({}, () =>
+      json(200, { ...trackingDomain, domain: null, cname_target: 'track.lettermint.co' })
+    );
+    const result = await lettermint.projects.trackingDomain.retrieve('project/1');
+    const domain: string | null = result.domain;
+    expect(domain).toBeNull();
+  });
+
+  it('reads the tracking domain on a project', async () => {
+    const project = { id: 'project/1', name: 'Production', tracking_domain: trackingDomain };
+    const { lettermint } = client({}, () => json(200, project));
+    const result: ProjectData = await lettermint.projects.retrieve('project/1');
+    const typed: ProjectTrackingDomain | undefined = result.tracking_domain;
+    expect(typed).toEqual(trackingDomain);
+  });
+
+  it('throws a ValidationError with the check outcome when the CNAME record is wrong', async () => {
+    const failed: ProjectTrackingDomainVerificationResponse = {
+      data: {
+        ...verification.data,
+        verified: false,
+        verified_at: null,
+        found_cname: 'elsewhere.example.test',
+      },
+      message: 'The CNAME record points to elsewhere.example.test.',
+    };
+    const { lettermint } = client({}, () => json(422, failed));
+    const error = await rejection(lettermint.projects.trackingDomain.verify('project/1'));
+    expect(error).toBeInstanceOf(ValidationError);
+    expect(error).toMatchObject({
+      status: 422,
+      message: 'The CNAME record points to elsewhere.example.test.',
+      body: failed,
+    });
+    const body = (error as ValidationError).body as ProjectTrackingDomainVerificationResponse;
+    expect(body.data.found_cname).toBe('elsewhere.example.test');
+  });
+
+  it('rejects a domain that another team uses', async () => {
+    const invalid = {
+      message: 'The domain is already in use.',
+      errors: { domain: ['The domain is already in use.'] },
+    };
+    const { lettermint } = client({}, () => json(422, invalid));
+    const error = await rejection(
+      lettermint.projects.trackingDomain.update('project/1', { domain: 'track.other.test' })
+    );
+    expect(error).toBeInstanceOf(ValidationError);
+    expect(error).toMatchObject({ status: 422, errors: invalid.errors });
   });
 });
 
@@ -1197,6 +1314,17 @@ describe('path parameters', () => {
     await expect(lettermint.team.apiTokens.update(id as string, { name: 'x' })).rejects.toThrow(
       'team.apiTokens.update: `tokenId` must be'
     );
+    for (const call of [
+      (l: Lettermint) => l.projects.trackingDomain.retrieve(id as string),
+      (l: Lettermint) =>
+        l.projects.trackingDomain.update(id as string, { domain: 'track.example.test' }),
+      (l: Lettermint) => l.projects.trackingDomain.delete(id as string),
+      (l: Lettermint) => l.projects.trackingDomain.verify(id as string),
+    ]) {
+      await expect(call(lettermint)).rejects.toThrow(
+        /^projects\.trackingDomain\.\w+: `projectId` must be/
+      );
+    }
     for (const call of [
       (l: Lettermint) => l.domains.startDkimUpgrade(id as string),
       (l: Lettermint) => l.domains.cancelDkimUpgrade(id as string),

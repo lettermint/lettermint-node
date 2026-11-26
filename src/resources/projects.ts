@@ -12,12 +12,16 @@ import type {
   ProjectData,
   ProjectListData,
   ProjectMutationResponse,
+  ProjectTrackingDomain,
+  ProjectTrackingDomainMutationResponse,
+  ProjectTrackingDomainVerificationResponse,
   ReportForwardingRequest,
   ResendReportForwardingCodeResponse,
   RotateProjectTokenResponse,
   StoreProjectApiTokenData,
   StoreProjectData,
   UpdateProjectData,
+  UpdateProjectTrackingDomainData,
   UpdateReportForwardingResponse,
   VerifyReportForwardingRequest,
   VerifyReportForwardingResponse,
@@ -82,6 +86,81 @@ export class ReportForwarding extends ApiResource {
   ): Promise<ResendReportForwardingCodeResponse> {
     return this.request('POST /projects/{projectId}/report-forwarding/resend-code', {
       label: 'projects.reportForwarding.resendCode',
+      path: { projectId },
+      options,
+    });
+  }
+}
+
+/**
+ * The custom tracking domain of a project: the domain that open and click
+ * tracking links use instead of the Lettermint tracking domain. Team token.
+ */
+export class TrackingDomain extends ApiResource {
+  /** @internal */
+  constructor(transport: Transport) {
+    super(transport, 'TrackingDomain');
+  }
+
+  /**
+   * The project's custom tracking domain and whether its CNAME record is
+   * verified. `domain` is `null` when the project uses the Lettermint
+   * tracking domain.
+   */
+  retrieve(projectId: string, options?: RequestOptions): Promise<ProjectTrackingDomain> {
+    return this.request('GET /projects/{projectId}/tracking-domain', {
+      label: 'projects.trackingDomain.retrieve',
+      path: { projectId },
+      options,
+    });
+  }
+
+  /**
+   * Sets or replaces the custom tracking domain. Add a CNAME record for the
+   * domain that points to `cname_target`; Lettermint checks it in the
+   * background, or call `verify` to check it now. Tracking links keep using
+   * the Lettermint tracking domain until the domain is verified. Needs a plan
+   * with custom tracking domains.
+   */
+  update(
+    projectId: string,
+    body: UpdateProjectTrackingDomainData,
+    options?: RequestOptions
+  ): Promise<ProjectTrackingDomainMutationResponse> {
+    return this.request('PUT /projects/{projectId}/tracking-domain', {
+      label: 'projects.trackingDomain.update',
+      path: { projectId },
+      body,
+      options,
+    });
+  }
+
+  /**
+   * Removes the custom tracking domain; tracking links use the Lettermint
+   * tracking domain again. Resolves with `undefined` (HTTP 204).
+   */
+  delete(projectId: string, options?: RequestOptions): Promise<undefined> {
+    return this.request('DELETE /projects/{projectId}/tracking-domain', {
+      label: 'projects.trackingDomain.delete',
+      path: { projectId },
+      options,
+    });
+  }
+
+  /**
+   * Checks the CNAME record of the custom tracking domain now. When the record
+   * is missing, points elsewhere or the DNS lookup failed, this throws a
+   * `ValidationError` (HTTP 422) whose `body` holds the same
+   * `ProjectTrackingDomainVerificationResponse` (`data.found_cname`,
+   * `data.temporary_error`). It also throws a `ValidationError` when the
+   * project has no custom tracking domain.
+   */
+  verify(
+    projectId: string,
+    options?: RequestOptions
+  ): Promise<ProjectTrackingDomainVerificationResponse> {
+    return this.request('POST /projects/{projectId}/tracking-domain/verify', {
+      label: 'projects.trackingDomain.verify',
       path: { projectId },
       options,
     });
@@ -163,12 +242,15 @@ export class Projects extends ApiResource {
   public readonly reportForwarding: ReportForwarding;
   /** API tokens of a project. */
   public readonly apiTokens: ProjectApiTokens;
+  /** The custom tracking domain of a project. */
+  public readonly trackingDomain: TrackingDomain;
 
   /** @internal */
   constructor(transport: Transport) {
     super(transport, 'Projects');
     this.reportForwarding = new ReportForwarding(transport);
     this.apiTokens = new ProjectApiTokens(transport);
+    this.trackingDomain = new TrackingDomain(transport);
   }
 
   /** Lists projects, one page at a time. */
@@ -192,6 +274,7 @@ export class Projects extends ApiResource {
     return this.request('POST /projects', { label: 'projects.create', body, options });
   }
 
+  /** A project. Unlike the list, it includes the custom tracking domain (`tracking_domain`). */
   retrieve(
     projectId: string,
     query?: NestedQuery<GetProjectQuery>,
