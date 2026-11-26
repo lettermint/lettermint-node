@@ -1,6 +1,9 @@
 import {
   ApiError,
   ConflictError,
+  type DomainData,
+  type DomainDkimTransition,
+  type DomainMutationResponse,
   type Lettermint,
   LettermintConfigError,
   type MessageResponse,
@@ -39,14 +42,10 @@ const ids = {
 type Call = (lettermint: Lettermint) => Promise<unknown> | AsyncGenerator<unknown>;
 
 /**
- * Operations that get their SDK method in the next PRs of this stack (DKIM
- * upgrade and rotation, project tracking domains). Those PRs remove this list.
+ * Operations that get their SDK method in the next PR of this stack (project
+ * tracking domains). That PR removes this list.
  */
 const pending = [
-  'DELETE /domains/{domainId}/dkim/upgrade',
-  'POST /domains/{domainId}/dkim/rotate',
-  'POST /domains/{domainId}/dkim/upgrade',
-  'POST /domains/{domainId}/dkim/upgrade/activate',
   'DELETE /projects/{projectId}/tracking-domain',
   'GET /projects/{projectId}/tracking-domain',
   'POST /projects/{projectId}/tracking-domain/verify',
@@ -57,6 +56,7 @@ type CoveredKey = Exclude<OperationKey, (typeof pending)[number]>;
 /** Every operation of the API, called through its public SDK method. */
 const calls: Record<CoveredKey, Call> = {
   'DELETE /domains/{domainId}': (l) => l.domains.delete(ids.domainId),
+  'DELETE /domains/{domainId}/dkim/upgrade': (l) => l.domains.cancelDkimUpgrade(ids.domainId),
   'DELETE /projects/{projectId}': (l) => l.projects.delete(ids.projectId),
   'DELETE /projects/{projectId}/api-tokens/{tokenId}': (l) =>
     l.projects.apiTokens.delete(ids.projectId, ids.tokenId),
@@ -106,6 +106,10 @@ const calls: Record<CoveredKey, Call> = {
     l.messages.reschedule(ids.messageId, { scheduled_at: '2026-10-01T09:00:00Z' }),
   'POST /analytics': (l) => l.analytics({ metrics: ['accepted'] }),
   'POST /domains': (l) => l.domains.create({ domain: 'example.test' }),
+  'POST /domains/{domainId}/dkim/rotate': (l) => l.domains.rotateDkimKey(ids.domainId),
+  'POST /domains/{domainId}/dkim/upgrade': (l) => l.domains.startDkimUpgrade(ids.domainId),
+  'POST /domains/{domainId}/dkim/upgrade/activate': (l) =>
+    l.domains.activateDkimUpgrade(ids.domainId),
   'POST /domains/{domainId}/dns-records/verify': (l) => l.domains.verifyDnsRecords(ids.domainId),
   'POST /domains/{domainId}/dns-records/{recordId}/verify': (l) =>
     l.domains.verifyDnsRecord(ids.domainId, ids.recordId),
@@ -400,6 +404,69 @@ describe('request bodies and options', () => {
       expect(result).toEqual(route);
     }
   );
+});
+
+describe('DKIM upgrade and rotation', () => {
+  const domain = {
+    id: 'domain/1',
+    domain: 'acme.test',
+    dkim_mode: 'legacy_txt',
+    rotation_ready: false,
+    dkim_transition: { type: 'legacy_upgrade', state: 'awaiting_dns', completes_after: null },
+    status_changed_at: null,
+    created_at: '2026-11-01T09:00:00Z',
+  } as DomainData;
+
+  it.each([
+    ['startDkimUpgrade', 'POST', '/dkim/upgrade', 202],
+    ['cancelDkimUpgrade', 'DELETE', '/dkim/upgrade', 200],
+    ['activateDkimUpgrade', 'POST', '/dkim/upgrade/activate', 200],
+    ['rotateDkimKey', 'POST', '/dkim/rotate', 202],
+  ] as const)('%s sends %s %s without a body', async (method, httpMethod, suffix, status) => {
+    const body: DomainMutationResponse = { data: domain, message: 'Done.' };
+    const { lettermint, requests } = client({}, () => json(status, body));
+    const result: DomainMutationResponse = await lettermint.domains[method]('domain/1');
+    expect(result).toEqual(body);
+    const transition: DomainDkimTransition | null | undefined = result.data.dkim_transition;
+    expect(transition).toEqual(domain.dkim_transition);
+    expect(requests).toHaveLength(1);
+    const [request] = requests;
+    expect(request.method).toBe(httpMethod);
+    expect(request.url).toBe(`https://api.lettermint.co/v1/domains/domain%2F1${suffix}`);
+    expect(request.headers.Authorization).toBe(`Bearer ${TEAM_TOKEN}`);
+    expect(request.headers).not.toHaveProperty('x-lettermint-token');
+    expect(request.headers).not.toHaveProperty('Idempotency-Key');
+    expect(request.rawBody).toBeUndefined();
+    expect(request.headers).not.toHaveProperty('Content-Type');
+  });
+
+  it('returns the domain unchanged when it already uses managed DKIM', async () => {
+    const managed = { ...domain, dkim_mode: 'managed_cname', dkim_transition: null };
+    const { lettermint } = client({}, () => json(200, { data: managed, message: 'Done.' }));
+    const result = await lettermint.domains.startDkimUpgrade('domain/1');
+    expect(result.data.dkim_mode).toBe('managed_cname');
+    expect(result.data.dkim_transition).toBeNull();
+  });
+
+  it('reads a domain without a dkim_transition key', async () => {
+    const { dkim_transition: _, ...older } = domain;
+    const { lettermint } = client({}, () => json(200, older));
+    const result: DomainData = await lettermint.domains.retrieve('domain/1');
+    expect(result.dkim_transition).toBeUndefined();
+  });
+
+  it('rejects an activation before both CNAME records are verified', async () => {
+    const body = {
+      error: {
+        code: 'DKIM_UPGRADE_NOT_READY',
+        message: 'The DKIM CNAME records are not verified.',
+      },
+    };
+    const { lettermint } = client({}, () => json(422, body));
+    const error = await rejection(lettermint.domains.activateDkimUpgrade('domain/1'));
+    expect(error).toBeInstanceOf(ValidationError);
+    expect(error).toMatchObject({ status: 422, code: 'DKIM_UPGRADE_NOT_READY' });
+  });
 });
 
 describe('team members', () => {
@@ -1130,6 +1197,14 @@ describe('path parameters', () => {
     await expect(lettermint.team.apiTokens.update(id as string, { name: 'x' })).rejects.toThrow(
       'team.apiTokens.update: `tokenId` must be'
     );
+    for (const call of [
+      (l: Lettermint) => l.domains.startDkimUpgrade(id as string),
+      (l: Lettermint) => l.domains.cancelDkimUpgrade(id as string),
+      (l: Lettermint) => l.domains.activateDkimUpgrade(id as string),
+      (l: Lettermint) => l.domains.rotateDkimKey(id as string),
+    ]) {
+      await expect(call(lettermint)).rejects.toThrow(/^domains\.\w+Dkim\w+: `domainId` must be/);
+    }
     expect(fetch).not.toHaveBeenCalled();
   });
 });

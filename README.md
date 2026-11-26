@@ -248,6 +248,14 @@ const lettermint = new Lettermint({ teamToken: process.env.LETTERMINT_TEAM_TOKEN
 const domain = await lettermint.domains.create({ domain: 'acme.com' });
 await lettermint.domains.verifyDnsRecords(domain.id);
 
+// Move a domain with a DKIM TXT record to managed DKIM: add the two new CNAME records from the
+// response, then activate when `dkim_transition.state` is `ready_to_activate`.
+const upgrade = await lettermint.domains.startDkimUpgrade(domain.id);
+console.log(upgrade.data.dkim_transition); // { type: 'legacy_upgrade', state: 'awaiting_dns', ... }
+await lettermint.domains.activateDkimUpgrade(domain.id);
+// Replace a managed DKIM key early; the CNAME records stay the same.
+await lettermint.domains.rotateDkimKey(domain.id);
+
 const project = await lettermint.projects.create({ name: 'Production' });
 console.log(project.api_token); // the new project's sending token, shown once
 
@@ -296,7 +304,7 @@ await lettermint.team.apiTokens.delete(teamToken.data.id);
 
 | Property | Methods |
 | --- | --- |
-| `domains` | `list`, `iterate`, `create`, `retrieve`, `delete`, `verifyDnsRecords`, `verifyDnsRecord`, `updateProjects` |
+| `domains` | `list`, `iterate`, `create`, `retrieve`, `delete`, `verifyDnsRecords`, `verifyDnsRecord`, `startDkimUpgrade`, `cancelDkimUpgrade`, `activateDkimUpgrade`, `rotateDkimKey`, `updateProjects` |
 | `messages` | `list`, `iterate`, `retrieve`, `events`, `iterateEvents`, `source`, `html`, `text`, `reschedule`, `cancel`, `process`, `resend` |
 | `projects` | `list`, `iterate`, `create`, `retrieve`, `update`, `delete`, `rotateToken` |
 | `projects.reportForwarding` | `retrieve`, `update`, `delete`, `verify`, `resendCode` |
